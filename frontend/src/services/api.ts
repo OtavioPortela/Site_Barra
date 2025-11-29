@@ -1,0 +1,244 @@
+import axios from 'axios';
+import type { LoginCredentials, OrdemServico, BillingData } from '../types';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Interceptor para adicionar token nas requisições
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor para tratar erros de autenticação
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const authService = {
+  login: async (credentials: LoginCredentials) => {
+    const response = await api.post('/auth/login/', credentials);
+    return response.data;
+  },
+  getMe: async () => {
+    const response = await api.get('/auth/me/');
+    return response.data;
+  },
+};
+
+export const funcionarioService = {
+  getAll: async (): Promise<Array<{
+    id: number;
+    email: string;
+    username: string;
+    nome_completo: string;
+    cargo?: string;
+    telefone?: string;
+    ativo: boolean;
+    is_staff: boolean;
+    data_criacao: string;
+  }>> => {
+    const response = await api.get('/auth/funcionarios/');
+    const data = response.data;
+    return Array.isArray(data) ? data : (data.results || []);
+  },
+
+  getById: async (id: number) => {
+    const response = await api.get(`/auth/funcionarios/${id}/`);
+    return response.data;
+  },
+
+  create: async (data: {
+    email: string;
+    username: string;
+    nome_completo: string;
+    password: string;
+    password2: string;
+    cargo?: string;
+    telefone?: string;
+  }) => {
+    const response = await api.post('/auth/funcionarios/', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: Partial<{
+    nome_completo: string;
+    cargo?: string;
+    telefone?: string;
+    ativo?: boolean;
+  }>) => {
+    const response = await api.patch(`/auth/funcionarios/${id}/`, data);
+    return response.data;
+  },
+
+  delete: async (id: number) => {
+    await api.delete(`/auth/funcionarios/${id}/`);
+  },
+};
+
+export const ordemServicoService = {
+  getAll: async (filters?: {
+    status?: OrdemServico['status'];
+    cliente?: string;
+    data_inicio?: string;
+    data_fim?: string;
+    search?: string;
+  }): Promise<OrdemServico[]> => {
+    const response = await api.get('/ordens-servico/', { params: filters });
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<OrdemServico> => {
+    const response = await api.get(`/ordens-servico/${id}/`);
+    return response.data;
+  },
+
+  create: async (data: {
+    cliente: string;
+    descricao?: string;
+    status?: OrdemServico['status'];
+    valor: number;
+    prazo_entrega: string; // YYYY-MM-DD
+    numero?: string; // Opcional - será gerado automaticamente
+    observacoes?: string;
+    // Novos campos de confecções
+    estado_cabelo?: string;
+    tipo_cabelo?: string;
+    cor_cabelo?: string;
+    peso_gramas?: number;
+    tamanho_cabelo_cm?: number;
+    cor_linha?: string;
+    servico?: string | number; // Nome do serviço ou ID
+    valor_metro?: number;
+  }): Promise<OrdemServico> => {
+    const response = await api.post('/ordens-servico/', data);
+    return response.data;
+  },
+
+  update: async (id: number, data: Partial<OrdemServico>): Promise<OrdemServico> => {
+    const response = await api.patch(`/ordens-servico/${id}/`, data);
+    return response.data;
+  },
+
+  updateStatus: async (id: number, status: OrdemServico['status']): Promise<OrdemServico> => {
+    const response = await api.patch(`/ordens-servico/${id}/atualizar-status/`, { status });
+    return response.data;
+  },
+
+  faturar: async (id: number): Promise<OrdemServico> => {
+    const response = await api.post(`/ordens-servico/${id}/faturar/`);
+    return response.data;
+  },
+
+  desfaturar: async (id: number): Promise<OrdemServico> => {
+    const response = await api.post(`/ordens-servico/${id}/desfaturar/`);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/ordens-servico/${id}/`);
+  },
+
+  gerarNumero: async (): Promise<{ numero: string }> => {
+    const response = await api.get('/ordens-servico/gerar-numero/');
+    return response.data;
+  },
+};
+
+export const billingService = {
+  getBillingData: async (filters?: {
+    data_inicio?: string;
+    data_fim?: string;
+    cliente?: string;
+  }): Promise<BillingData> => {
+    const response = await api.get('/faturamento/', { params: filters });
+    return response.data;
+  },
+};
+
+export const clienteService = {
+  getAll: async (filters?: {
+    ativo?: boolean;
+    search?: string;
+  }): Promise<Array<{
+    id: number;
+    nome: string;
+    cnpj_cpf: string;
+    email?: string;
+    telefone?: string;
+    endereco?: string;
+    ativo: boolean;
+    data_cadastro: string;
+  }>> => {
+    const response = await api.get('/clientes/', { params: filters });
+    // A API pode retornar um objeto paginado ou um array direto
+    const data = response.data;
+    return Array.isArray(data) ? data : (data.results || []);
+  },
+
+  getById: async (id: number) => {
+    const response = await api.get(`/clientes/${id}/`);
+    return response.data;
+  },
+
+  create: async (data: {
+    nome: string;
+    cnpj_cpf?: string;
+    email?: string;
+    telefone?: string;
+    endereco?: string;
+  }) => {
+    const response = await api.post('/clientes/', data);
+    return response.data;
+  },
+};
+
+export const servicoService = {
+  getAll: async (filters?: {
+    ativo?: boolean;
+    search?: string;
+  }): Promise<Array<{ id: number; nome: string; descricao?: string }>> => {
+    const response = await api.get('/servicos/', { params: filters });
+    // A API pode retornar um objeto paginado ou um array direto
+    const data: any = response.data;
+    return Array.isArray(data) ? data : (data.results || []);
+  },
+
+  getById: async (id: number) => {
+    const response = await api.get(`/servicos/${id}/`);
+    return response.data;
+  },
+
+  create: async (data: {
+    nome: string;
+    descricao?: string;
+  }) => {
+    const response = await api.post('/servicos/', data);
+    return response.data;
+  },
+};
+
+export default api;
+

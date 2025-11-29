@@ -1,0 +1,179 @@
+from django.db import models
+from django.core.validators import MinValueValidator
+from django.utils import timezone
+
+
+class Cliente(models.Model):
+    """Modelo para armazenar informações dos clientes."""
+    nome = models.CharField(max_length=200)
+    cnpj_cpf = models.CharField(max_length=18, unique=True)
+    email = models.EmailField(blank=True)
+    telefone = models.CharField(max_length=20)
+    endereco = models.TextField(blank=True)
+    ativo = models.BooleanField(default=True)
+    data_cadastro = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Cliente'
+        verbose_name_plural = 'Clientes'
+        ordering = ['-data_cadastro']
+
+    def __str__(self):
+        return f"{self.nome} ({self.cnpj_cpf})"
+
+
+class OrdemServico(models.Model):
+    """Modelo para armazenar ordens de serviço."""
+    STATUS_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('em_desenvolvimento', 'Em Desenvolvimento'),
+        ('finalizada', 'Finalizada'),
+    ]
+
+    TIPO_CABELO_CHOICES = [
+    ('liso', 'Liso'),
+    ('ondulado', 'Ondulado'),
+    ('cacheado', 'Cacheado'),
+    ('crespo', 'Crespo'),
+    ]
+    ESTADO_CABELO_CHOICES = [
+    ('novo', 'Novo'),
+    ('descolorido', 'Descolorido'),
+    ('branco', 'Branco'),
+    ('preto', 'Preto'),
+    ('castanho', 'Castanho'),
+    ('rubro', 'Rubro'),
+    ('loiro', 'Loiro'),
+    ('pintado', 'Pintado'),
+    ]
+    numero = models.CharField(max_length=20, unique=True)
+    cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='ordens_servico')
+    descricao = models.TextField(blank=True, default='')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pendente')
+    estado_cabelo = models.CharField(
+    max_length=20,
+    choices=ESTADO_CABELO_CHOICES,
+    default='novo',
+    verbose_name='Estado do Cabelo'
+    )
+    tipo_cabelo = models.CharField(
+        max_length=20,
+        choices=TIPO_CABELO_CHOICES,
+        default='liso',
+        verbose_name='Tipo de Cabelo'
+    )
+    cor_cabelo = models.CharField(
+        max_length=50,
+        default='',
+        verbose_name='Cor do Cabelo'
+    )
+    peso_gramas = models.IntegerField(
+        validators=[MinValueValidator(0)],
+        default=0,
+        verbose_name='Peso (em gramas)'
+    )
+    tamanho_cabelo_cm = models.IntegerField(
+        validators=[MinValueValidator(0)],
+        default=0,
+        verbose_name='Tamanho do Cabelo (cm)'
+    )
+    cor_linha = models.CharField(
+        max_length=50,
+        default='',
+        verbose_name='Cor da Linha'
+    )
+    valor = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        default=0
+    )
+    servico = models.ForeignKey(
+        'Servico',  # Usa string porque Servico está definido depois
+        on_delete=models.PROTECT,
+        related_name='ordens_servico',
+        verbose_name='Serviço',
+        null=True,
+        blank=True
+    )
+    valor_metro = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        default=0,
+        verbose_name='Valor por Metro (R$)',
+        help_text='Valor em reais por metro'
+    )
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    prazo_entrega = models.DateField()
+    data_finalizacao = models.DateTimeField(null=True, blank=True)
+    faturada = models.BooleanField(default=False, verbose_name='Faturada')
+    data_faturamento = models.DateTimeField(null=True, blank=True, verbose_name='Data de Faturamento')
+    observacoes = models.TextField(blank=True)
+    usuario_criacao = models.ForeignKey(
+        'authentication.Usuario',
+        on_delete=models.PROTECT,
+        related_name='ordens_criadas'
+    )
+
+    class Meta:
+        ordering = ['-data_criacao']
+        verbose_name = 'Ordem de Serviço'
+        verbose_name_plural = 'Ordens de Serviço'
+
+    def __str__(self):
+        return f"OS {self.numero} - {self.cliente.nome}"
+
+    @property
+    def cliente_nome(self):
+        """Retorna o nome do cliente para serialização."""
+        return self.cliente.nome
+
+class Servico(models.Model):
+    """Modelo para armazenar serviços"""
+    nome = models.CharField(max_length=100, unique=True)
+    descricao = models.TextField(blank=True)
+    ativo = models.BooleanField(default=True)
+    data_criacao = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Serviço'
+        verbose_name_plural = 'Serviços'
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class ItemOrdemServico(models.Model):
+    """Modelo opcional para itens de uma ordem de serviço."""
+    ordem_servico = models.ForeignKey(
+        OrdemServico,
+        related_name='itens',
+        on_delete=models.CASCADE
+    )
+    descricao = models.CharField(max_length=200)
+    quantidade = models.IntegerField(validators=[MinValueValidator(1)])
+    valor_unitario = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)]
+    )
+    valor_total = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)]
+    )
+
+    class Meta:
+        verbose_name = 'Item de Ordem de Serviço'
+        verbose_name_plural = 'Itens de Ordens de Serviço'
+
+    def __str__(self):
+        return f"{self.descricao} - OS {self.ordem_servico.numero}"
+
+    def save(self, *args, **kwargs):
+        """Calcula valor_total automaticamente."""
+        self.valor_total = self.quantidade * self.valor_unitario
+        super().save(*args, **kwargs)
+
