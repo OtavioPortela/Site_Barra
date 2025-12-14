@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ordemServicoService } from '../../services/api';
-import type { OrdemServico } from '../../types';
 import { formatCurrency, formatDate } from '../../utils/helpers';
-import { useAuth } from '../../contexts/AuthContext';
 
 interface OSDetailsModalProps {
   isOpen: boolean;
@@ -53,7 +51,6 @@ const getTipoCabeloLabel = (tipo: string) => {
 };
 
 export const OSDetailsModal = ({ isOpen, onClose, ordemId }: OSDetailsModalProps) => {
-  const { isPatrao } = useAuth();
   const [ordem, setOrdem] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 

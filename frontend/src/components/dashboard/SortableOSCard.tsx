@@ -18,7 +18,7 @@ interface SortableOSCardProps {
 export const SortableOSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar, onEmitirNota, onToggleEntregue, onEnviarWhatsApp, ordensEnviadasWhatsApp, ordensNotaEmitida }: SortableOSCardProps) => {
   const {
     attributes,
-    listeners,
+    listeners: _listeners,
     setNodeRef,
     transform,
     transition,

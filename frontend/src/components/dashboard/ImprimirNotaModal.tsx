@@ -49,8 +49,8 @@ const formatarNotaTermica = (ordem: OrdemServico): string => {
   const razaoSocial = 'BARRA CONFECCOES LTDA';
   const nomeFantasia = 'BARRA CONFECCOES';
   const cnpj = '59.220.325/0001-22';
-  const endereco = 'ENDEREÇO DA EMPRESA'; // Você pode adicionar o endereço real aqui
-  const telefone = '(00) 0000-0000'; // Você pode adicionar o telefone real aqui
+  // const endereco = 'ENDEREÇO DA EMPRESA'; // Você pode adicionar o endereço real aqui
+  // const telefone = '(00) 0000-0000'; // Você pode adicionar o telefone real aqui
 
   // Gerar número fictício da NFC-e (normalmente vem do sistema fiscal)
   const numeroNF = ordem.numero.replace('OS-', '').padStart(9, '0');
