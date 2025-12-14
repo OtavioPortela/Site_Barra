@@ -46,11 +46,11 @@ EOF
 
 echo "Iniciando servidor..."
 
-# Expandir variáveis de ambiente no comando (especialmente $PORT do Railway)
-# Usar bash -c para garantir que as variáveis sejam expandidas
+# Usar a porta do Railway ou padrão 8000
 PORT_VALUE="${PORT:-8000}"
 export PORT=$PORT_VALUE
 
-# Executar comando passado como argumento, expandindo $PORT
-bash -c "$*"
+# Executar o comando passado como argumento
+# Se o comando contém $PORT, será expandido pela variável de ambiente
+exec "$@"
 
