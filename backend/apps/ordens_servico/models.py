@@ -110,6 +110,33 @@ class OrdemServico(models.Model):
     faturada = models.BooleanField(default=False, verbose_name='Faturada')
     data_faturamento = models.DateTimeField(null=True, blank=True, verbose_name='Data de Faturamento')
     observacoes = models.TextField(blank=True)
+    entregue = models.BooleanField(default=False, verbose_name='Entregue')
+    pago_na_entrega = models.BooleanField(
+        default=False,
+        verbose_name='Pago na Entrega',
+        help_text='Indica se a OS já foi paga na entrega'
+    )
+    FORMA_PAGAMENTO_CHOICES = [
+        ('dinheiro', 'Dinheiro'),
+        ('pix', 'PIX'),
+        ('cartao_credito', 'Cartão de Crédito'),
+        ('cartao_debito', 'Cartão de Débito'),
+    ]
+    forma_pagamento = models.CharField(
+        max_length=20,
+        choices=FORMA_PAGAMENTO_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name='Forma de Pagamento',
+        help_text='Forma de pagamento utilizada na OS'
+    )
+    foto_entrega = models.ImageField(
+        upload_to='fotos_entrega/',
+        blank=True,
+        null=True,
+        verbose_name='Foto da Entrega',
+        help_text='Foto comprovando a entrega da ordem de serviço'
+    )
     usuario_criacao = models.ForeignKey(
         'authentication.Usuario',
         on_delete=models.PROTECT,

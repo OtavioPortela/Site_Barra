@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { clienteService, ordemServicoService } from '../../services/api';
+import { whatsappService } from '../../services/whatsappService';
 import { CreateClienteModal } from './CreateClienteModal';
 
 // Importação do servicoService - usando type assertion para evitar erro de cache do TypeScript
@@ -21,6 +22,7 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
     valor_metro: '',
     prazo_entrega: '',
     observacoes: '',
+    pago_na_entrega: false,
     // Campos de confecções
     estado_cabelo: 'novo',
     tipo_cabelo: 'liso',
@@ -35,6 +37,13 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showCreateCliente, setShowCreateCliente] = useState(false);
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+  const [showFotoOptions, setShowFotoOptions] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -68,6 +77,128 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
     loadClientes();
     // Preencher o campo cliente com o nome do novo cliente
     setFormData({ ...formData, cliente: clienteNome });
+  };
+
+  // Limpar foto quando modal fechar
+  useEffect(() => {
+    if (!isOpen) {
+      setFotoFile(null);
+      setFotoPreview(null);
+      setShowFotoOptions(false);
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        setCameraStream(null);
+      }
+    }
+  }, [isOpen, cameraStream]);
+
+  // Gerenciar stream de vídeo
+  useEffect(() => {
+    if (showFotoOptions && videoRef.current && cameraStream) {
+      const video = videoRef.current;
+      video.srcObject = cameraStream;
+      video.onloadedmetadata = () => {
+        video.play().catch((error) => {
+          console.error('Erro ao reproduzir vídeo:', error);
+          toast.error('Erro ao iniciar a câmera');
+        });
+      };
+    }
+
+    return () => {
+      if (cameraStream && !showFotoOptions) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [showFotoOptions, cameraStream]);
+
+  const handleFotoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type.startsWith('image/')) {
+        setFotoFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFotoPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+        setShowFotoOptions(false);
+      } else {
+        toast.error('Por favor, selecione um arquivo de imagem');
+      }
+    }
+  };
+
+  const handleStartCamera = async () => {
+    try {
+      let mediaStream: MediaStream | null = null;
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        });
+      } catch (error) {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true
+        });
+      }
+
+      if (mediaStream) {
+        setCameraStream(mediaStream);
+      }
+    } catch (error: any) {
+      console.error('Erro ao acessar câmera:', error);
+      let errorMessage = 'Não foi possível acessar a câmera.';
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Permissão de câmera negada.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'Nenhuma câmera encontrada.';
+      }
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleCapturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+        toast.error('Aguarde a câmera carregar completamente');
+        return;
+      }
+
+      const context = canvas.getContext('2d');
+      if (context && video.videoWidth > 0 && video.videoHeight > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], `foto_os_${Date.now()}.jpg`, { type: 'image/jpeg' });
+            setFotoFile(file);
+            setFotoPreview(canvas.toDataURL('image/jpeg'));
+
+            if (cameraStream) {
+              cameraStream.getTracks().forEach(track => track.stop());
+              setCameraStream(null);
+            }
+            setShowFotoOptions(false);
+            toast.success('Foto capturada com sucesso!');
+          }
+        }, 'image/jpeg', 0.9);
+      }
+    }
+  };
+
+  const handleRemoveFoto = () => {
+    setFotoFile(null);
+    setFotoPreview(null);
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setShowFotoOptions(false);
   };
 
   const validate = () => {
@@ -126,28 +257,74 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
 
     setLoading(true);
     try {
-      const createData: any = {
-        cliente: formData.cliente,
-        valor: parseFloat(formData.valor),
-        valor_metro: parseFloat(formData.valor_metro),
-        prazo_entrega: formData.prazo_entrega,
-        status: 'pendente',
-        // Campos de confecções
-        estado_cabelo: formData.estado_cabelo,
-        tipo_cabelo: formData.tipo_cabelo,
-        cor_cabelo: formData.cor_cabelo,
-        peso_gramas: parseInt(formData.peso_gramas),
-        tamanho_cabelo_cm: parseInt(formData.tamanho_cabelo_cm),
-        cor_linha: formData.cor_linha,
-        servico: formData.servico,
-      };
+      // Se tiver foto, usar FormData, senão usar JSON normal
+      if (fotoFile) {
+        const formDataToSend = new FormData();
+        formDataToSend.append('cliente', formData.cliente);
+        formDataToSend.append('valor', formData.valor);
+        formDataToSend.append('valor_metro', formData.valor_metro);
+        formDataToSend.append('prazo_entrega', formData.prazo_entrega);
+        formDataToSend.append('status', 'pendente');
+        formDataToSend.append('pago_na_entrega', formData.pago_na_entrega ? 'true' : 'false');
+        formDataToSend.append('estado_cabelo', formData.estado_cabelo);
+        formDataToSend.append('tipo_cabelo', formData.tipo_cabelo);
+        formDataToSend.append('cor_cabelo', formData.cor_cabelo);
+        formDataToSend.append('peso_gramas', formData.peso_gramas);
+        formDataToSend.append('tamanho_cabelo_cm', formData.tamanho_cabelo_cm);
+        formDataToSend.append('cor_linha', formData.cor_linha);
+        formDataToSend.append('servico', formData.servico);
+        if (formData.descricao) formDataToSend.append('descricao', formData.descricao);
+        if (formData.observacoes) formDataToSend.append('observacoes', formData.observacoes);
+        formDataToSend.append('foto_entrega', fotoFile);
 
-      if (formData.descricao) createData.descricao = formData.descricao;
-      if (formData.observacoes) createData.observacoes = formData.observacoes;
+        var ordemCriada = await ordemServicoService.create(formDataToSend);
+      } else {
+        const createData: any = {
+          cliente: formData.cliente,
+          valor: parseFloat(formData.valor),
+          valor_metro: parseFloat(formData.valor_metro),
+          prazo_entrega: formData.prazo_entrega,
+          status: 'pendente',
+          pago_na_entrega: formData.pago_na_entrega,
+          // Campos de confecções
+          estado_cabelo: formData.estado_cabelo,
+          tipo_cabelo: formData.tipo_cabelo,
+          cor_cabelo: formData.cor_cabelo,
+          peso_gramas: parseInt(formData.peso_gramas),
+          tamanho_cabelo_cm: parseInt(formData.tamanho_cabelo_cm),
+          cor_linha: formData.cor_linha,
+          servico: formData.servico,
+        };
 
-      await ordemServicoService.create(createData);
+        if (formData.descricao) createData.descricao = formData.descricao;
+        if (formData.observacoes) createData.observacoes = formData.observacoes;
 
-      toast.success('Ordem de serviço criada com sucesso!');
+        var ordemCriada = await ordemServicoService.create(createData);
+      }
+
+      // Buscar OS completa para obter telefone do cliente se não veio na resposta
+      if (ordemCriada && ordemCriada.id) {
+        try {
+          ordemCriada = await ordemServicoService.getById(ordemCriada.id);
+        } catch (error) {
+          console.error('Erro ao buscar OS completa:', error);
+        }
+      }
+
+      // Enviar para WhatsApp automaticamente se tiver telefone
+      if (ordemCriada && ordemCriada.cliente_telefone) {
+        try {
+          await whatsappService.enviarOSCriada(ordemCriada.cliente_telefone, ordemCriada.id);
+          toast.success('Ordem de serviço criada e enviada para WhatsApp!');
+        } catch (error: any) {
+          // Não bloquear criação se falhar envio WhatsApp
+          console.error('Erro ao enviar para WhatsApp:', error);
+          toast.success('Ordem de serviço criada com sucesso! (WhatsApp não enviado)');
+        }
+      } else {
+        toast.success('Ordem de serviço criada com sucesso!');
+      }
+
       setFormData({
         cliente: '',
         descricao: '',
@@ -155,6 +332,7 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
         valor_metro: '',
         prazo_entrega: '',
         observacoes: '',
+        pago_na_entrega: false,
         estado_cabelo: 'novo',
         tipo_cabelo: 'liso',
         cor_cabelo: '',
@@ -163,6 +341,13 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
         cor_linha: '',
         servico: '',
       });
+      setFotoFile(null);
+      setFotoPreview(null);
+      setShowFotoOptions(false);
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        setCameraStream(null);
+      }
       setErrors({});
       onSuccess();
       onClose();
@@ -527,6 +712,135 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Observações adicionais"
               />
+            </div>
+
+            {/* Seção: Foto */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Foto (opcional)
+              </label>
+
+              {!fotoPreview && !showFotoOptions && (
+                <button
+                  type="button"
+                  onClick={() => setShowFotoOptions(true)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
+                >
+                  📷 Adicionar Foto
+                </button>
+              )}
+
+              {showFotoOptions && !cameraStream && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={handleStartCamera}
+                      className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex flex-col items-center gap-2"
+                    >
+                      <span className="text-2xl">📷</span>
+                      <span>Câmera</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex flex-col items-center gap-2"
+                    >
+                      <span className="text-2xl">📎</span>
+                      <span>Anexar</span>
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowFotoOptions(false)}
+                    className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFotoFileSelect}
+                    className="hidden"
+                  />
+                </div>
+              )}
+
+              {cameraStream && (
+                <div className="space-y-3">
+                  <div className="relative bg-black rounded-lg overflow-hidden" style={{ minHeight: '200px' }}>
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-auto max-h-[300px] object-contain"
+                    />
+                    <canvas ref={canvasRef} className="hidden" />
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCapturePhoto}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      Capturar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (cameraStream) {
+                          cameraStream.getTracks().forEach(track => track.stop());
+                          setCameraStream(null);
+                        }
+                        setShowFotoOptions(false);
+                      }}
+                      className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {fotoPreview && (
+                <div className="mt-3">
+                  <div className="relative">
+                    <img
+                      src={fotoPreview}
+                      alt="Preview"
+                      className="w-full rounded-lg border border-gray-300 max-h-48 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveFoto}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors"
+                      title="Remover foto"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Seção: Pagamento */}
+            <div>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.pago_na_entrega}
+                  onChange={(e) => setFormData({ ...formData, pago_na_entrega: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Já foi pago na entrega?
+                </span>
+              </label>
+              <p className="mt-1 text-xs text-gray-500 ml-6">
+                Se marcado, será possível emitir nota fiscal diretamente no card da OS
+              </p>
             </div>
           </div>
 

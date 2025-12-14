@@ -2,6 +2,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.db.models import Q
@@ -42,6 +43,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
     """ViewSet para gerenciamento de ordens de serviço."""
     queryset = OrdemServico.objects.all()
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]  # Suporte para upload de arquivos
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['status', 'cliente']
     search_fields = ['numero', 'cliente__nome', 'descricao']
@@ -61,21 +63,23 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         """Filtra queryset baseado em parâmetros de data."""
         queryset = super().get_queryset()
 
-        # Excluir OS faturadas do dashboard (apenas para listagem normal)
-        # Se for uma ação de listagem e não for histórico, excluir faturadas
-        if self.action == 'list' and not self.request.query_params.get('historico'):
+        # Filtro por faturada (só aplicar se explicitamente solicitado no histórico)
+        faturada_filter = self.request.query_params.get('faturada')
+        historico = self.request.query_params.get('historico')
+
+        if historico:
+            # Se for histórico, aplicar filtro de faturada se solicitado
+            if faturada_filter is not None:
+                faturada_bool = faturada_filter.lower() == 'true'
+                queryset = queryset.filter(faturada=faturada_bool)
+        else:
+            # Se não for histórico (dashboard), SEMPRE excluir faturadas
             queryset = queryset.filter(faturada=False)
 
         # Filtro por status
         status_filter = self.request.query_params.get('status')
         if status_filter:
             queryset = queryset.filter(status=status_filter)
-
-        # Filtro por faturada
-        faturada_filter = self.request.query_params.get('faturada')
-        if faturada_filter is not None:
-            faturada_bool = faturada_filter.lower() == 'true'
-            queryset = queryset.filter(faturada=faturada_bool)
 
         # Filtro por data de criação
         data_inicio = self.request.query_params.get('data_inicio')
@@ -159,6 +163,18 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         if ordem_servico.faturada:
             return Response(
                 {'error': 'Esta ordem de serviço já foi faturada.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not ordem_servico.entregue:
+            return Response(
+                {'error': 'Apenas ordens de serviço entregues podem ser faturadas.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # VALIDAÇÃO: Verificar se a forma de pagamento foi definida
+        if not ordem_servico.forma_pagamento:
+            return Response(
+                {'error': 'É necessário definir a forma de pagamento antes de faturar a ordem de serviço.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 

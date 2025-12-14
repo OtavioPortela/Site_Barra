@@ -9,8 +9,9 @@ import {
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ordemServicoService } from '../../services/api';
+import { whatsappService } from '../../services/whatsappService';
 import type { OrdemServico } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
+import { ImprimirNotaModal } from './ImprimirNotaModal';
 import { OSCard } from './OSCard';
 import { OSColumn } from './OSColumn';
 
@@ -20,12 +21,17 @@ interface OSBoardProps {
 }
 
 export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
-  const { isPatrao } = useAuth();
   const [ordens, setOrdens] = useState<OrdemServico[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCliente, setFilterCliente] = useState('');
+  const [showImprimirModal, setShowImprimirModal] = useState(false);
+  const [ordemParaFaturar, setOrdemParaFaturar] = useState<OrdemServico | null>(null);
+  const [ordemParaImprimir, setOrdemParaImprimir] = useState<OrdemServico | null>(null);
+  const [showImprimirNotaModal, setShowImprimirNotaModal] = useState(false);
+  const [ordensEnviadasWhatsApp, setOrdensEnviadasWhatsApp] = useState<Set<number>>(new Set());
+  const [ordensNotaEmitida, setOrdensNotaEmitida] = useState<Set<number>>(new Set());
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -48,6 +54,21 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
       }
 
       const data = await ordemServicoService.getAll(Object.keys(filters).length > 0 ? filters : undefined);
+      // Debug: verificar campos importantes
+      if (data && data.length > 0) {
+        // eslint-disable-next-line no-console
+        console.log('OSBoard.loadOrdens - exemplo de OS:', {
+          id: data[0].id,
+          numero: data[0].numero,
+          status: data[0].status,
+          entregue: (data as any)[0].entregue,
+          faturada: (data as any)[0].faturada,
+        });
+        // eslint-disable-next-line no-console
+        console.log('OSBoard.loadOrdens - Total de OS recebidas:', data.length);
+        // eslint-disable-next-line no-console
+        console.log('OSBoard.loadOrdens - OS faturadas no resultado:', data.filter((o: any) => o.faturada === true).length);
+      }
       setOrdens(data);
     } catch (error: any) {
       toast.error('Erro ao carregar ordens de serviço');
@@ -111,24 +132,160 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
     }
   };
 
-  const handleFaturar = async (ordem: OrdemServico) => {
+  const handleFaturar = (ordem: OrdemServico) => {
+    // Abrir modal de impressão ao invés de faturar diretamente
+    setOrdemParaFaturar(ordem);
+    setShowImprimirModal(true);
+  };
+
+  const handleEmitirNota = (ordem: OrdemServico) => {
+    // Abrir modal apenas para imprimir (não faturar)
+    setOrdemParaImprimir(ordem);
+    setShowImprimirNotaModal(true);
+  };
+
+  const handleCloseImprimirNotaModal = () => {
+    // Marcar que a nota foi emitida quando fechar o modal
+    if (ordemParaImprimir) {
+      handleNotaEmitida(ordemParaImprimir.id);
+    }
+    setShowImprimirNotaModal(false);
+    setOrdemParaImprimir(null);
+  };
+
+  const handleNotaEmitida = (ordemId: number) => {
+    // Marcar que a nota foi emitida
+    setOrdensNotaEmitida(prev => new Set(prev).add(ordemId));
+  };
+
+  const handleConfirmarFaturar = async () => {
+    if (!ordemParaFaturar) return;
+
     try {
-      await ordemServicoService.faturar(ordem.id);
+      await ordemServicoService.faturar(ordemParaFaturar.id);
       await loadOrdens();
       toast.success('Ordem de serviço faturada com sucesso!');
+      setShowImprimirModal(false);
+      setOrdemParaFaturar(null);
     } catch (error: any) {
       const errorMessage = error.response?.data?.error ||
                           error.response?.data?.detail ||
                           'Erro ao faturar ordem de serviço';
       toast.error(errorMessage);
       console.error(error);
+      throw error;
     }
   };
 
-  // Agora os filtros são feitos no backend, então apenas separamos por status
-  const pendentes = ordens.filter((o) => o.status === 'pendente');
-  const emDesenvolvimento = ordens.filter((o) => o.status === 'em_desenvolvimento');
-  const finalizadas = ordens.filter((o) => o.status === 'finalizada');
+  const handleCloseImprimirModal = () => {
+    setShowImprimirModal(false);
+    setOrdemParaFaturar(null);
+  };
+
+  const handleEnviarWhatsApp = async (ordem: OrdemServico) => {
+    console.log('🔍 Iniciando envio WhatsApp para OS:', ordem.id);
+    console.log('📋 Dados da OS:', ordem);
+    console.log('📞 Telefone na OS (lista):', ordem.cliente_telefone);
+
+    try {
+      // Buscar dados completos da OS para garantir que temos todas as informações
+      console.log('📥 Buscando OS completa...');
+      const ordemCompleta = await ordemServicoService.getById(ordem.id);
+      console.log('✅ OS completa obtida:', ordemCompleta);
+      console.log('📞 Telefone na OS completa:', ordemCompleta.cliente_telefone);
+
+      // Verificar se tem telefone do cliente
+      if (!ordemCompleta.cliente_telefone || ordemCompleta.cliente_telefone.trim() === '') {
+        console.error('❌ Telefone não encontrado na OS completa');
+        toast.error('Cliente não possui telefone cadastrado');
+        return;
+      }
+
+      // Enviar nota da OS via WhatsApp
+      console.log('📤 Enviando para WhatsApp...');
+      console.log('📞 Número:', ordemCompleta.cliente_telefone);
+      console.log('🆔 OS ID:', ordemCompleta.id);
+
+      await whatsappService.enviarNotaOS(ordemCompleta.cliente_telefone, ordemCompleta.id);
+
+      // Marcar como enviada
+      setOrdensEnviadasWhatsApp(prev => new Set(prev).add(ordem.id));
+
+      console.log('✅ WhatsApp enviado com sucesso!');
+      toast.success('Nota da OS enviada para WhatsApp com sucesso!');
+    } catch (error: any) {
+      console.error('❌ Erro completo ao enviar WhatsApp:', error);
+      console.error('📦 Response data:', error.response?.data);
+      console.error('📊 Response status:', error.response?.status);
+      console.error('🔍 Error message:', error.message);
+      console.error('📋 Error stack:', error.stack);
+
+      const errorMessage = error.response?.data?.error ||
+                          error.response?.data?.detail ||
+                          error.message ||
+                          'Erro ao enviar para WhatsApp';
+      toast.error(`Erro: ${errorMessage}`);
+    }
+  };
+
+  const handleToggleEntregue = async (ordem: OrdemServico, newEntregue: boolean) => {
+    // Se está marcando como entregue, marcar e abrir modal para emitir nota
+    if (newEntregue && !ordem.entregue) {
+      try {
+        // Primeiro marcar como entregue
+        await ordemServicoService.update(ordem.id, { entregue: true });
+        await loadOrdens();
+
+        // Buscar a OS atualizada para ter os dados mais recentes
+        const ordemAtualizada = await ordemServicoService.getById(ordem.id);
+
+        // Abrir modal para emitir nota
+        setOrdemParaImprimir(ordemAtualizada);
+        setShowImprimirNotaModal(true);
+
+        toast.success('OS marcada como entregue!');
+      } catch (error: any) {
+        const errorMessage =
+          error.response?.data?.error ||
+          error.response?.data?.detail ||
+          'Erro ao marcar como entregue';
+        toast.error(errorMessage);
+        console.error(error);
+      }
+    } else {
+      // Se está desmarcando, apenas atualizar
+      try {
+        await ordemServicoService.update(ordem.id, { entregue: newEntregue });
+        await loadOrdens();
+        toast.success('Entrega desmarcada.');
+      } catch (error: any) {
+        const errorMessage =
+          error.response?.data?.error ||
+          error.response?.data?.detail ||
+          'Erro ao atualizar entrega da OS';
+        toast.error(errorMessage);
+        console.error(error);
+      }
+    }
+  };
+
+
+  // Filtrar ordens: excluir faturadas do dashboard e separar por status
+  // Garantir que faturada seja tratado como boolean (pode vir undefined do backend)
+  const ordensFiltradas = ordens.filter((o) => o.faturada !== true);
+  const pendentes = ordensFiltradas.filter((o) => o.status === 'pendente');
+  const emDesenvolvimento = ordensFiltradas.filter((o) => o.status === 'em_desenvolvimento');
+  const finalizadas = ordensFiltradas.filter((o) => o.status === 'finalizada');
+
+  // Debug
+  if (ordens.length > 0) {
+    // eslint-disable-next-line no-console
+    console.log('OSBoard - Ordens recebidas:', ordens.length);
+    // eslint-disable-next-line no-console
+    console.log('OSBoard - Ordens após filtrar faturadas:', ordensFiltradas.length);
+    // eslint-disable-next-line no-console
+    console.log('OSBoard - Finalizadas (não faturadas):', finalizadas.length);
+  }
 
   const activeOrdem = activeId ? ordens.find((o) => o.id === activeId) : null;
 
@@ -178,6 +335,11 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
             onViewDetails={onViewDetails}
             onChangeStatus={updateStatus}
             onFaturar={handleFaturar}
+            onEmitirNota={handleEmitirNota}
+            onToggleEntregue={handleToggleEntregue}
+            onEnviarWhatsApp={handleEnviarWhatsApp}
+            ordensEnviadasWhatsApp={ordensEnviadasWhatsApp}
+            ordensNotaEmitida={ordensNotaEmitida}
           />
           <OSColumn
             id="em_desenvolvimento"
@@ -186,6 +348,11 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
             onViewDetails={onViewDetails}
             onChangeStatus={updateStatus}
             onFaturar={handleFaturar}
+            onEmitirNota={handleEmitirNota}
+            onToggleEntregue={handleToggleEntregue}
+            onEnviarWhatsApp={handleEnviarWhatsApp}
+            ordensEnviadasWhatsApp={ordensEnviadasWhatsApp}
+            ordensNotaEmitida={ordensNotaEmitida}
           />
           <OSColumn
             id="finalizada"
@@ -194,12 +361,51 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
             onViewDetails={onViewDetails}
             onChangeStatus={updateStatus}
             onFaturar={handleFaturar}
+            onEmitirNota={handleEmitirNota}
+            onToggleEntregue={handleToggleEntregue}
+            onEnviarWhatsApp={handleEnviarWhatsApp}
+            ordensEnviadasWhatsApp={ordensEnviadasWhatsApp}
+            ordensNotaEmitida={ordensNotaEmitida}
           />
         </div>
         <DragOverlay>
-          {activeOrdem ? <OSCard ordem={activeOrdem} onViewDetails={onViewDetails} onChangeStatus={updateStatus} onFaturar={handleFaturar} /> : null}
+          {activeOrdem ? (
+            <OSCard
+              ordem={activeOrdem}
+              onViewDetails={onViewDetails}
+              onChangeStatus={updateStatus}
+              onFaturar={handleFaturar}
+              onEmitirNota={handleEmitirNota}
+              onToggleEntregue={handleToggleEntregue}
+              onEnviarWhatsApp={handleEnviarWhatsApp}
+              ordensEnviadasWhatsApp={ordensEnviadasWhatsApp}
+              ordensNotaEmitida={ordensNotaEmitida}
+            />
+          ) : null}
         </DragOverlay>
       </DndContext>
+
+      {ordemParaFaturar && (
+        <ImprimirNotaModal
+          isOpen={showImprimirModal}
+          onClose={handleCloseImprimirModal}
+          onConfirm={handleConfirmarFaturar}
+          ordem={ordemParaFaturar}
+        />
+      )}
+
+      {ordemParaImprimir && (
+        <ImprimirNotaModal
+          isOpen={showImprimirNotaModal}
+          onClose={handleCloseImprimirNotaModal}
+          onConfirm={() => {
+            // Quando imprimir, apenas fechar o modal (a nota será marcada como emitida no onClose)
+            handleCloseImprimirNotaModal();
+          }}
+          ordem={ordemParaImprimir}
+          apenasImprimir={true}
+        />
+      )}
     </div>
   );
 };

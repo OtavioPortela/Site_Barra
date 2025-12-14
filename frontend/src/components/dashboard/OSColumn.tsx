@@ -1,7 +1,6 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { OrdemServico } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
 import { SortableOSCard } from './SortableOSCard';
 
 interface OSColumnProps {
@@ -11,9 +10,14 @@ interface OSColumnProps {
   onViewDetails: (ordem: OrdemServico) => void;
   onChangeStatus?: (ordem: OrdemServico, newStatus: OrdemServico['status']) => void;
   onFaturar?: (ordem: OrdemServico) => void;
+  onEmitirNota?: (ordem: OrdemServico) => void;
+  onToggleEntregue?: (ordem: OrdemServico, newEntregue: boolean) => void;
+  onEnviarWhatsApp?: (ordem: OrdemServico) => void;
+  ordensEnviadasWhatsApp?: Set<number>;
+  ordensNotaEmitida?: Set<number>;
 }
 
-export const OSColumn = ({ id, title, ordens, onViewDetails, onChangeStatus, onFaturar }: OSColumnProps) => {
+export const OSColumn = ({ id, title, ordens, onViewDetails, onChangeStatus, onFaturar, onEmitirNota, onToggleEntregue, onEnviarWhatsApp, ordensEnviadasWhatsApp, ordensNotaEmitida }: OSColumnProps) => {
   // Removida a restrição - agora todos podem mover para finalizada
   const canDrop = true;
 
@@ -38,6 +42,11 @@ export const OSColumn = ({ id, title, ordens, onViewDetails, onChangeStatus, onF
               onViewDetails={onViewDetails}
               onChangeStatus={onChangeStatus}
               onFaturar={onFaturar}
+              onEmitirNota={onEmitirNota}
+              onToggleEntregue={onToggleEntregue}
+              onEnviarWhatsApp={onEnviarWhatsApp}
+              ordensEnviadasWhatsApp={ordensEnviadasWhatsApp}
+              ordensNotaEmitida={ordensNotaEmitida}
             />
           ))}
           {ordens.length === 0 && (

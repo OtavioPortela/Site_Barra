@@ -1,9 +1,12 @@
 FROM python:3.11-slim
 
-# Instalar dependências do sistema para PostgreSQL
+# Instalar dependências do sistema para PostgreSQL e Pillow
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     netcat-traditional \
+    libjpeg-dev \
+    zlib1g-dev \
+    libpng-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Criar diretório de trabalho

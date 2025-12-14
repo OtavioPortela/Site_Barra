@@ -12,6 +12,7 @@ export const HistoricoOS = () => {
     faturada: '',
     data_inicio: '',
     data_fim: '',
+    cliente_nome: '',
   });
 
   useEffect(() => {
@@ -27,6 +28,7 @@ export const HistoricoOS = () => {
       if (filters.faturada !== '') params.faturada = filters.faturada;
       if (filters.data_inicio) params.data_inicio = filters.data_inicio;
       if (filters.data_fim) params.data_fim = filters.data_fim;
+      if (filters.cliente_nome) params.search = filters.cliente_nome;
 
       const data = await ordemServicoService.getAll(Object.keys(params).length > 0 ? params : undefined);
       setOrdens(data);
@@ -54,6 +56,7 @@ export const HistoricoOS = () => {
       if (filters.faturada !== '') params.append('faturada', filters.faturada);
       if (filters.data_inicio) params.append('data_inicio', filters.data_inicio);
       if (filters.data_fim) params.append('data_fim', filters.data_fim);
+      if (filters.cliente_nome) params.append('search', filters.cliente_nome);
 
       const token = localStorage.getItem('token');
       const url = `${import.meta.env.VITE_API_URL}/ordens-servico/exportar-excel/?${params.toString()}`;
@@ -132,7 +135,19 @@ export const HistoricoOS = () => {
 
       {/* Filtros */}
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Cliente
+            </label>
+            <input
+              type="text"
+              value={filters.cliente_nome}
+              onChange={(e) => handleFilterChange('cliente_nome', e.target.value)}
+              placeholder="Buscar por nome do cliente"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Status
@@ -215,6 +230,12 @@ export const HistoricoOS = () => {
                   Faturada
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Entregue
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Forma de Pagamento
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Descrição
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -243,10 +264,29 @@ export const HistoricoOS = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      ordem.faturada ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        ordem.faturada ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
                       {ordem.faturada ? 'Sim' : 'Não'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        ordem.entregue ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {ordem.entregue ? 'Sim' : 'Não'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                      {ordem.forma_pagamento === 'dinheiro' ? 'Dinheiro' :
+                       ordem.forma_pagamento === 'pix' ? 'PIX' :
+                       ordem.forma_pagamento === 'cartao_credito' ? 'Cartão de Crédito' :
+                       ordem.forma_pagamento === 'cartao_debito' ? 'Cartão de Débito' : '-'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">

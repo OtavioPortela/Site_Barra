@@ -28,6 +28,22 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
             if data_keys == {'status'} or data_keys == {'status', 'csrfmiddlewaretoken'}:
                 return True
 
+        # Permitir atualização de entregue, foto_entrega e forma_pagamento para qualquer usuário autenticado
+        if request.method == 'PATCH' and request.data:
+            data_keys = set(request.data.keys())
+
+            # Se estiver atualizando apenas entregue e/ou foto_entrega e/ou forma_pagamento, permitir
+            # FormData pode ter outros campos, então verificamos se os campos principais são apenas esses
+            allowed_keys = {'entregue', 'foto_entrega', 'forma_pagamento'}
+
+            # Verificar se está atualizando algum dos campos permitidos
+            if any(key in data_keys for key in allowed_keys):
+                # Verificar se os outros campos (além dos permitidos) são apenas campos técnicos
+                other_keys = data_keys - allowed_keys
+                # Se não há outros campos ou apenas campos técnicos, permitir
+                if len(other_keys) == 0 or other_keys.issubset({'csrfmiddlewaretoken'}):
+                    return True
+
         # Permissões de escrita para outros campos apenas para o criador
         return obj.usuario_criacao == request.user
 

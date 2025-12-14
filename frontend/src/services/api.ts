@@ -132,13 +132,27 @@ export const ordemServicoService = {
     cor_linha?: string;
     servico?: string | number; // Nome do serviço ou ID
     valor_metro?: number;
-  }): Promise<OrdemServico> => {
-    const response = await api.post('/ordens-servico/', data);
+    pago_na_entrega?: boolean;
+    foto_entrega?: File;
+  } | FormData): Promise<OrdemServico> => {
+    const response = await api.post('/ordens-servico/', data, {
+      headers: data instanceof FormData ? {
+        'Content-Type': 'multipart/form-data',
+      } : {
+        'Content-Type': 'application/json',
+      },
+    });
     return response.data;
   },
 
-  update: async (id: number, data: Partial<OrdemServico>): Promise<OrdemServico> => {
-    const response = await api.patch(`/ordens-servico/${id}/`, data);
+  update: async (id: number, data: Partial<OrdemServico> | FormData): Promise<OrdemServico> => {
+    const response = await api.patch(`/ordens-servico/${id}/`, data, {
+      headers: data instanceof FormData ? {
+        'Content-Type': 'multipart/form-data',
+      } : {
+        'Content-Type': 'application/json',
+      },
+    });
     return response.data;
   },
 

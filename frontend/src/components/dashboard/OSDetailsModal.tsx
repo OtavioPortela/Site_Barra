@@ -235,6 +235,24 @@ export const OSDetailsModal = ({ isOpen, onClose, ordemId }: OSDetailsModalProps
                 </div>
               </div>
 
+              {/* Foto da Entrega */}
+              {ordem.foto_entrega && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Foto da OS</h3>
+                  <div className="flex justify-center">
+                    <img
+                      src={ordem.foto_entrega}
+                      alt="Foto da Ordem de Serviço"
+                      className="max-w-full h-auto rounded-lg border border-gray-300 shadow-md max-h-96 object-contain"
+                      onError={(e) => {
+                        console.error('Erro ao carregar imagem:', e);
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Observações */}
               {ordem.observacoes && (
                 <div className="space-y-4">

@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'apps.authentication',
     'apps.ordens_servico',
     'apps.faturamento',
+    'apps.whatsapp',
 ]
 
 MIDDLEWARE = [
@@ -202,7 +203,17 @@ CORS_ALLOWED_ORIGINS_LIST = list(CORS_ALLOWED_ORIGINS)
 for origin in ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173']:
     if origin not in CORS_ALLOWED_ORIGINS_LIST:
         CORS_ALLOWED_ORIGINS_LIST.append(origin)
-CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS_LIST
+
+# Permitir origens ngrok (qualquer subdomínio .ngrok.io ou .ngrok-free.app)
+# Isso facilita o uso com ngrok sem precisar configurar manualmente
+NGROK_MODE = config('NGROK_MODE', default=False, cast=bool)
+if NGROK_MODE:
+    # Modo ngrok: permitir todas as origens (apenas para desenvolvimento/teste)
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGINS = []  # Não usado quando ALLOW_ALL_ORIGINS é True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS_LIST
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -239,4 +250,9 @@ SWAGGER_SETTINGS = {
     },
     'USE_SESSION_AUTH': False,
 }
+
+# Twilio WhatsApp API Config
+TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID', default=None)
+TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN', default=None)
+TWILIO_WHATSAPP_FROM = config('TWILIO_WHATSAPP_FROM', default=None)
 

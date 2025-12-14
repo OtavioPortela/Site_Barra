@@ -7,14 +7,23 @@ interface OSCardProps {
   onViewDetails: (ordem: OrdemServico) => void;
   onChangeStatus?: (ordem: OrdemServico, newStatus: OrdemServico['status']) => void;
   onFaturar?: (ordem: OrdemServico) => void;
+  onEmitirNota?: (ordem: OrdemServico) => void;
+  onToggleEntregue?: (ordem: OrdemServico, newEntregue: boolean) => void;
+  onEnviarWhatsApp?: (ordem: OrdemServico) => void;
+  ordensEnviadasWhatsApp?: Set<number>;
+  ordensNotaEmitida?: Set<number>;
 }
 
-export const OSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar }: OSCardProps) => {
+export const OSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar, onEmitirNota, onToggleEntregue, onEnviarWhatsApp, ordensEnviadasWhatsApp, ordensNotaEmitida }: OSCardProps) => {
   const { isPatrao } = useAuth();
   const isPatraoValue = isPatrao();
 
   // Garantir que faturada existe (pode ser undefined)
   const isFaturada = ordem.faturada === true;
+  const isEntregue = ordem.entregue === true;
+  const isPagoNaEntrega = ordem.pago_na_entrega === true;
+  const foiEnviadaWhatsApp = ordensEnviadasWhatsApp?.has(ordem.id) || false;
+  const notaJaEmitida = ordensNotaEmitida?.has(ordem.id) || false;
 
   const getNextStatus = (currentStatus: OrdemServico['status']): OrdemServico['status'] | null => {
     if (currentStatus === 'pendente') return 'em_desenvolvimento';
@@ -26,6 +35,8 @@ export const OSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar }: OSCa
   };
 
   const getPreviousStatus = (currentStatus: OrdemServico['status']): OrdemServico['status'] | null => {
+    // Se a OS já foi marcada como entregue, não deve mais permitir voltar status
+    if (isEntregue) return null;
     if (currentStatus === 'em_desenvolvimento') return 'pendente';
     if (currentStatus === 'finalizada') return 'em_desenvolvimento';
     return null; // Pendente não tem anterior
@@ -37,6 +48,12 @@ export const OSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar }: OSCa
   const handleStatusChange = (newStatus: OrdemServico['status']) => {
     if (onChangeStatus) {
       onChangeStatus(ordem, newStatus);
+    }
+  };
+
+  const handleToggleEntregue = () => {
+    if (onToggleEntregue) {
+      onToggleEntregue(ordem, !isEntregue);
     }
   };
 
@@ -95,8 +112,26 @@ export const OSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar }: OSCa
           )}
         </div>
 
-        {/* Botão Faturar - apenas para patrão e quando status for finalizada */}
-        {ordem.status === 'finalizada' && isPatraoValue && !isFaturada && onFaturar && (
+        {/* Botão Emitir Nota - quando pago na entrega, aparece apenas quando NÃO estiver finalizada (apenas imprime, não fatura) */}
+        {isPagoNaEntrega && !isFaturada && ordem.status !== 'finalizada' && onEmitirNota && (
+          notaJaEmitida ? (
+            <div className="w-full px-3 py-1.5 text-xs bg-gray-200 text-gray-600 rounded font-medium text-center cursor-not-allowed">
+              🧾 Nota Emitida
+            </div>
+          ) : (
+            <button
+              onClick={() => onEmitirNota(ordem)}
+              className="w-full px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+              title="Emitir nota fiscal desta ordem de serviço (apenas impressão)"
+            >
+              🧾 Emitir Nota
+            </button>
+          )
+        )}
+
+        {/* Botão Faturar - apenas para patrão, quando status for finalizada E quando estiver entregue
+            Aparece tanto para OS pagas na entrada quanto para OS não pagas na entrada */}
+        {ordem.status === 'finalizada' && isPatraoValue && !isFaturada && isEntregue && onFaturar && (
           <button
             onClick={() => onFaturar(ordem)}
             className="w-full px-3 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-medium"
@@ -114,12 +149,44 @@ export const OSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar }: OSCa
         )}
       </div>
 
-      <button
-        onClick={() => onViewDetails(ordem)}
-        className="w-full px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
-      >
-        Ver Detalhes
-      </button>
+      <div className="space-y-2">
+        <button
+          onClick={() => onViewDetails(ordem)}
+          className="w-full px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+        >
+          Ver Detalhes
+        </button>
+
+        {onEnviarWhatsApp && ordem.status === 'finalizada' && (
+          foiEnviadaWhatsApp ? (
+            <div className="w-full px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded font-medium flex items-center justify-center gap-2">
+              <span>✓</span>
+              Enviado para WhatsApp
+            </div>
+          ) : (
+            <button
+              onClick={() => onEnviarWhatsApp(ordem)}
+              className="w-full px-3 py-1.5 text-sm bg-green-500 text-white rounded hover:bg-green-600 transition-colors font-medium flex items-center justify-center gap-2"
+            >
+              <span>📱</span>
+              Enviar para WhatsApp
+            </button>
+          )
+        )}
+
+        {ordem.status === 'finalizada' && (
+          <button
+            onClick={handleToggleEntregue}
+            className={`w-full px-3 py-1.5 text-sm rounded font-medium transition-colors ${
+              isEntregue
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            {isEntregue ? 'Entregue' : 'Marcar como Entregue'}
+          </button>
+        )}
+      </div>
     </div>
   );
 };

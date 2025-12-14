@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+
   db:
     image: postgres:15-alpine
     container_name: barra_confeccoes_db
@@ -17,6 +18,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      barra-network:
+        aliases:
+          - postgres
 
   web:
     build:
@@ -37,8 +42,14 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - barra-network
 
 volumes:
   postgres_data:
   static_volume:
+
+networks:
+  barra-network:
+    driver: bridge
 

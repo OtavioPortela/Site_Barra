@@ -2,6 +2,7 @@ export interface OrdemServico {
   id: number;
   numero: string;
   cliente: string;
+  cliente_telefone?: string;
   descricao: string;
   status: 'pendente' | 'em_desenvolvimento' | 'finalizada';
   valor: number;
@@ -21,6 +22,10 @@ export interface OrdemServico {
   valor_metro?: number;
   observacoes?: string;
   usuario_criacao_nome?: string;
+  entregue?: boolean;
+  pago_na_entrega?: boolean;
+  foto_entrega?: string;
+  forma_pagamento?: 'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito';
 }
 
 export interface User {
