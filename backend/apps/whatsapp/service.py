@@ -29,6 +29,9 @@ class WhatsAppService:
         if not self.account_sid or not self.auth_token:
             raise ValueError("Twilio não configurado. Configure TWILIO_ACCOUNT_SID e TWILIO_AUTH_TOKEN")
 
+        if not self.whatsapp_from:
+            raise ValueError("TWILIO_WHATSAPP_FROM não configurado. Configure o número do Twilio Sandbox no settings.py")
+
         # Formatar número (remover caracteres especiais)
         numero_limpo = ''.join(filter(str.isdigit, numero))
 
@@ -39,12 +42,20 @@ class WhatsAppService:
             if len(numero_limpo) >= 10 and len(numero_limpo) <= 11:
                 numero_limpo = '55' + numero_limpo
 
+        # Garantir que From e To sejam diferentes
+        numero_to = f'whatsapp:+{numero_limpo}'
+        numero_from = self.whatsapp_from
+        
+        # Se From e To forem iguais, lançar erro
+        if numero_from == numero_to:
+            raise ValueError(f"Não é possível enviar mensagem: número de origem ({numero_from}) e destino ({numero_to}) são iguais. Verifique se o cliente não está usando o mesmo número do Twilio Sandbox.")
+
         url = f"https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}/Messages.json"
         auth = (self.account_sid, self.auth_token)
 
         payload = {
-            'From': self.whatsapp_from or f'whatsapp:+{numero_limpo}',
-            'To': f'whatsapp:+{numero_limpo}',
+            'From': numero_from,
+            'To': numero_to,
             'Body': mensagem
         }
 
@@ -104,6 +115,9 @@ class WhatsAppService:
         if not self.account_sid or not self.auth_token:
             raise ValueError("Twilio não configurado. Configure TWILIO_ACCOUNT_SID e TWILIO_AUTH_TOKEN")
 
+        if not self.whatsapp_from:
+            raise ValueError("TWILIO_WHATSAPP_FROM não configurado. Configure o número do Twilio Sandbox no settings.py")
+
         # Formatar número (remover caracteres especiais)
         numero_limpo = ''.join(filter(str.isdigit, numero))
 
@@ -113,12 +127,20 @@ class WhatsAppService:
             if len(numero_limpo) >= 10 and len(numero_limpo) <= 11:
                 numero_limpo = '55' + numero_limpo
 
+        # Garantir que From e To sejam diferentes
+        numero_to = f'whatsapp:+{numero_limpo}'
+        numero_from = self.whatsapp_from
+        
+        # Se From e To forem iguais, lançar erro
+        if numero_from == numero_to:
+            raise ValueError(f"Não é possível enviar mensagem: número de origem ({numero_from}) e destino ({numero_to}) são iguais. Verifique se o cliente não está usando o mesmo número do Twilio Sandbox.")
+
         url = f"https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}/Messages.json"
         auth = (self.account_sid, self.auth_token)
 
         payload = {
-            'From': self.whatsapp_from or f'whatsapp:+{numero_limpo}',
-            'To': f'whatsapp:+{numero_limpo}',
+            'From': numero_from,
+            'To': numero_to,
             'MediaUrl': url_imagem
         }
 
