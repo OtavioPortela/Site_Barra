@@ -24,3 +24,12 @@ ACaee92e2f5590d62ac1fa0ddb91aeaca3
 
 Auth Token
 088ea840ba20dd3c8a082c30cb71fe4b
+
+-----------------------------------------------------------------------------------------
+Variaveis de ambiente do psql prod
+
+PGHOST = postgres.railway.internal
+PGPORT = 5432
+PGDATABASE = railway
+PGUSER = postgres
+PGPASSWORD = LWsONwogoqBXrItzrQiebZgXELGRuUcE
