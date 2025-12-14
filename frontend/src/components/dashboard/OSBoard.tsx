@@ -133,7 +133,7 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
   };
 
   const handleFaturar = (ordem: OrdemServico) => {
-    // Abrir modal de impressão ao invés de faturar diretamente
+    // Abrir modal apenas para visualizar a nota (sem imprimir)
     setOrdemParaFaturar(ordem);
     setShowImprimirModal(true);
   };
@@ -391,6 +391,7 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
           onClose={handleCloseImprimirModal}
           onConfirm={handleConfirmarFaturar}
           ordem={ordemParaFaturar}
+          apenasVisualizar={true}
         />
       )}
 

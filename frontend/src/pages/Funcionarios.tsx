@@ -317,6 +317,8 @@ export const Funcionarios = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     loadFuncionarios();
@@ -362,6 +364,22 @@ export const Funcionarios = () => {
     (func.username && func.username.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  // Calcular paginação
+  const totalPages = Math.ceil(filteredFuncionarios.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const funcionariosPaginados = filteredFuncionarios.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Resetar página quando busca mudar
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR');
@@ -369,7 +387,7 @@ export const Funcionarios = () => {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-500">Carregando funcionários...</div>
         </div>
@@ -378,96 +396,54 @@ export const Funcionarios = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Funcionários</h1>
-          <p className="text-gray-600 mt-1">Gerencie os funcionários do sistema</p>
+    <div className="p-4 sm:p-6">
+      <div className="mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Funcionários</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Gerencie os funcionários do sistema</p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center space-x-2 text-sm sm:text-base"
+          >
+            <span>+</span>
+            <span>Adicionar Funcionário</span>
+          </button>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center space-x-2"
-        >
-          <span>+</span>
-          <span>Adicionar Funcionário</span>
-        </button>
       </div>
 
       {/* Barra de busca */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <input
           type="text"
           placeholder="Buscar por nome, email ou username..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
 
-      {/* Tabela de funcionários */}
+      {/* Cards para Mobile / Tabela para Desktop */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {filteredFuncionarios.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             {searchTerm ? 'Nenhum funcionário encontrado com os filtros aplicados.' : 'Nenhum funcionário cadastrado ainda.'}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nome
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Username
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cargo
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Telefone
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Data de Cadastro
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tipo
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredFuncionarios.map((funcionario) => (
-                  <tr key={funcionario.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{funcionario.nome_completo}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{funcionario.email}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{funcionario.username}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{funcionario.cargo || '-'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{funcionario.telefone || '-'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{formatDate(funcionario.data_criacao)}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+          <>
+            {/* Cards para Mobile */}
+            <div className="md:hidden divide-y divide-gray-200">
+              {funcionariosPaginados.map((funcionario) => (
+                <div key={funcionario.id} className="p-4 hover:bg-gray-50">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900">{funcionario.nome_completo}</h3>
+                      <p className="text-sm text-gray-500 mt-1">{funcionario.email}</p>
+                    </div>
+                    <div className="ml-2 flex flex-col items-end gap-1">
                       <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                           funcionario.is_staff
                             ? 'bg-purple-100 text-purple-800'
                             : 'bg-blue-100 text-blue-800'
@@ -475,10 +451,8 @@ export const Funcionarios = () => {
                       >
                         {funcionario.is_staff ? 'Patrão' : 'Funcionário'}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                           funcionario.ativo
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
@@ -486,32 +460,216 @@ export const Funcionarios = () => {
                       >
                         {funcionario.ativo ? 'Ativo' : 'Inativo'}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 mt-3 pt-3 border-t border-gray-100">
+                    {funcionario.username && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-gray-500">Username:</span>
+                        <span className="text-xs text-gray-900">{funcionario.username}</span>
+                      </div>
+                    )}
+                    {funcionario.cargo && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-gray-500">Cargo:</span>
+                        <span className="text-xs text-gray-900">{funcionario.cargo}</span>
+                      </div>
+                    )}
+                    {funcionario.telefone && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-gray-500">Telefone:</span>
+                        <span className="text-xs text-gray-900">{funcionario.telefone}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-gray-500">Cadastro:</span>
+                        <span className="text-xs text-gray-900">{formatDate(funcionario.data_criacao)}</span>
+                      </div>
                       <button
                         onClick={() => handleToggleAtivo(funcionario)}
-                        className={`${
+                        className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
                           funcionario.ativo
-                            ? 'text-red-600 hover:text-red-900'
-                            : 'text-green-600 hover:text-green-900'
+                            ? 'text-red-600 bg-red-50 hover:bg-red-100'
+                            : 'text-green-600 bg-green-50 hover:bg-green-100'
                         }`}
                       >
                         {funcionario.ativo ? 'Desativar' : 'Ativar'}
                       </button>
-                    </td>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Tabela para Desktop */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Nome
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Username
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Cargo
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Telefone
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Data de Cadastro
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tipo
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ações
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {funcionariosPaginados.map((funcionario) => (
+                    <tr key={funcionario.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{funcionario.nome_completo}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-500">{funcionario.email}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-500">{funcionario.username}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-500">{funcionario.cargo || '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-500">{funcionario.telefone || '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-500">{formatDate(funcionario.data_criacao)}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            funcionario.is_staff
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-blue-100 text-blue-800'
+                          }`}
+                        >
+                          {funcionario.is_staff ? 'Patrão' : 'Funcionário'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            funcionario.ativo
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {funcionario.ativo ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => handleToggleAtivo(funcionario)}
+                          className={`${
+                            funcionario.ativo
+                              ? 'text-red-600 hover:text-red-900'
+                              : 'text-green-600 hover:text-green-900'
+                          }`}
+                        >
+                          {funcionario.ativo ? 'Desativar' : 'Ativar'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
-      {/* Informação de total */}
+      {/* Informação de total e paginação */}
       {filteredFuncionarios.length > 0 && (
-        <div className="mt-4 text-sm text-gray-600">
-          Total de funcionários: {filteredFuncionarios.length}
-          {searchTerm && ` (filtrados de ${funcionarios.length})`}
+        <div className="mt-4 space-y-4">
+          <div className="text-sm text-gray-600 text-center sm:text-left">
+            Mostrando <span className="font-semibold">{startIndex + 1}</span> a <span className="font-semibold">{Math.min(endIndex, filteredFuncionarios.length)}</span> de <span className="font-semibold">{filteredFuncionarios.length}</span> funcionários
+            {searchTerm && <span> (filtrados de {funcionarios.length})</span>}
+          </div>
+
+          {/* Controles de paginação */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center space-x-2 flex-wrap justify-center">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Anterior
+                </button>
+
+                {/* Números de página */}
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            currentPage === page
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    } else if (
+                      page === currentPage - 2 ||
+                      page === currentPage + 2
+                    ) {
+                      return (
+                        <span key={page} className="px-2 text-gray-500">
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Próxima →
+                </button>
+              </div>
+
+              <div className="text-xs text-gray-500">
+                Página {currentPage} de {totalPages}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

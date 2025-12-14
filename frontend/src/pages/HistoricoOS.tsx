@@ -7,6 +7,8 @@ import { formatCurrency, formatDate } from '../utils/helpers';
 export const HistoricoOS = () => {
   const [ordens, setOrdens] = useState<OrdemServico[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [filters, setFilters] = useState({
     status: '',
     faturada: '',
@@ -46,7 +48,20 @@ export const HistoricoOS = () => {
   };
 
   const handleApplyFilters = () => {
+    setCurrentPage(1); // Resetar para primeira página ao aplicar filtros
     loadOrdens();
+  };
+
+  // Calcular paginação
+  const totalPages = Math.ceil(ordens.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const ordensPaginadas = ordens.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll para o topo da lista
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleExportExcel = async () => {
@@ -109,7 +124,7 @@ export const HistoricoOS = () => {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-500">Carregando histórico...</div>
         </div>
@@ -118,25 +133,27 @@ export const HistoricoOS = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Histórico de Ordens de Serviço</h1>
-          <p className="text-gray-600 mt-1">Visualize e exporte todo o histórico de OS</p>
+    <div className="p-4 sm:p-6">
+      <div className="mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Histórico de Ordens de Serviço</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Visualize e exporte todo o histórico de OS</p>
+          </div>
+          <button
+            onClick={handleExportExcel}
+            className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center space-x-2 text-sm sm:text-base"
+          >
+            <span>📊</span>
+            <span>Exportar Excel</span>
+          </button>
         </div>
-        <button
-          onClick={handleExportExcel}
-          className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center space-x-2"
-        >
-          <span>📊</span>
-          <span>Exportar Excel</span>
-        </button>
       </div>
 
       {/* Filtros */}
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-          <div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
+          <div className="sm:col-span-2 lg:col-span-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Cliente
             </label>
@@ -144,8 +161,8 @@ export const HistoricoOS = () => {
               type="text"
               value={filters.cliente_nome}
               onChange={(e) => handleFilterChange('cliente_nome', e.target.value)}
-              placeholder="Buscar por nome do cliente"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="Buscar por nome"
+              className="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
           <div>
@@ -155,9 +172,9 @@ export const HistoricoOS = () => {
             <select
               value={filters.status}
               onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+              className="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
             >
-              <option value="">Todos os status</option>
+              <option value="">Todos</option>
               <option value="pendente">Pendente</option>
               <option value="em_desenvolvimento">Em Desenvolvimento</option>
               <option value="finalizada">Finalizada</option>
@@ -170,7 +187,7 @@ export const HistoricoOS = () => {
             <select
               value={filters.faturada}
               onChange={(e) => handleFilterChange('faturada', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+              className="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
             >
               <option value="">Todas</option>
               <option value="true">Faturadas</option>
@@ -185,7 +202,7 @@ export const HistoricoOS = () => {
               type="date"
               value={filters.data_inicio}
               onChange={(e) => handleFilterChange('data_inicio', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
           <div>
@@ -196,24 +213,85 @@ export const HistoricoOS = () => {
               type="date"
               value={filters.data_fim}
               onChange={(e) => handleFilterChange('data_fim', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
-          <div className="flex items-end pb-0">
+          <div className="flex items-end pb-0 sm:col-span-2 lg:col-span-1">
             <button
               type="button"
               onClick={handleApplyFilters}
-              className="w-full px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="w-full px-4 sm:px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base"
             >
-              🔍 Aplicar Filtros
+              🔍 Aplicar
             </button>
           </div>
         </div>
       </div>
 
-      {/* Tabela */}
+      {/* Lista de Cards para Mobile / Tabela para Desktop */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Cards para Mobile */}
+        <div className="md:hidden divide-y divide-gray-200">
+          {ordens.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              Nenhuma ordem de serviço encontrada com os filtros aplicados
+            </div>
+          ) : (
+            ordensPaginadas.map((ordem) => (
+              <div key={ordem.id} className="p-4 hover:bg-gray-50">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900">#{ordem.numero}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{ordem.cliente}</p>
+                  </div>
+                  <div className="ml-2">
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(ordem.status)}`}>
+                      {getStatusLabel(ordem.status)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-3 mb-2">
+                  <span className="text-xl font-bold text-primary-600">{formatCurrency(ordem.valor)}</span>
+                  <span className="text-xs text-gray-500">{formatDate(ordem.data_criacao)}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center space-x-1">
+                    <span className="text-xs text-gray-500">Faturada:</span>
+                    <span className={`px-2 py-0.5 inline-flex text-xs font-semibold rounded-full ${
+                      ordem.faturada ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {ordem.faturada ? 'Sim' : 'Não'}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span className="text-xs text-gray-500">Entregue:</span>
+                    <span className={`px-2 py-0.5 inline-flex text-xs font-semibold rounded-full ${
+                      ordem.entregue ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {ordem.entregue ? 'Sim' : 'Não'}
+                    </span>
+                  </div>
+                  {ordem.forma_pagamento && (
+                    <div className="col-span-2 flex items-center space-x-1 mt-1">
+                      <span className="text-xs text-gray-500">Pagamento:</span>
+                      <span className="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {ordem.forma_pagamento === 'dinheiro' ? 'Dinheiro' :
+                         ordem.forma_pagamento === 'pix' ? 'PIX' :
+                         ordem.forma_pagamento === 'cartao_credito' ? 'Cartão de Crédito' :
+                         ordem.forma_pagamento === 'cartao_debito' ? 'Cartão de Débito' : '-'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Tabela para Desktop */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -250,7 +328,7 @@ export const HistoricoOS = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {ordens.map((ordem) => (
+              {ordensPaginadas.map((ordem) => (
                 <tr key={ordem.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     #{ordem.numero}
@@ -313,10 +391,75 @@ export const HistoricoOS = () => {
         </div>
       </div>
 
-      {/* Informação de total */}
+      {/* Informação de total e paginação */}
       {ordens.length > 0 && (
-        <div className="mt-4 text-sm text-gray-600">
-          Total de ordens: {ordens.length}
+        <div className="mt-4 space-y-4">
+          <div className="text-sm text-gray-600 text-center sm:text-left">
+            Mostrando <span className="font-semibold">{startIndex + 1}</span> a <span className="font-semibold">{Math.min(endIndex, ordens.length)}</span> de <span className="font-semibold">{ordens.length}</span> ordens
+          </div>
+
+          {/* Controles de paginação */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center space-x-2 flex-wrap justify-center">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Anterior
+                </button>
+
+                {/* Números de página */}
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    // Mostrar apenas algumas páginas ao redor da atual
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            currentPage === page
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    } else if (
+                      page === currentPage - 2 ||
+                      page === currentPage + 2
+                    ) {
+                      return (
+                        <span key={page} className="px-2 text-gray-500">
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Próxima →
+                </button>
+              </div>
+
+              <div className="text-xs text-gray-500">
+                Página {currentPage} de {totalPages}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

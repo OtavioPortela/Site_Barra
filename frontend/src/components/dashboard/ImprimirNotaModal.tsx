@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import type { OrdemServico } from '../../types';
+import { useEffect, useState } from 'react';
 import { ordemServicoService } from '../../services/api';
+import type { OrdemServico } from '../../types';
 
 interface ImprimirNotaModalProps {
   isOpen: boolean;
@@ -9,6 +9,7 @@ interface ImprimirNotaModalProps {
   onSkip?: () => void;
   ordem: OrdemServico | null;
   apenasImprimir?: boolean; // Se true, não fatura, apenas imprime
+  apenasVisualizar?: boolean; // Se true, apenas mostra a nota (sem opção de imprimir)
 }
 
 const getFormaPagamentoLabel = (forma?: string | null): string => {
@@ -97,7 +98,7 @@ ${'='.repeat(48)}
 ${'='.repeat(48)}`;
 };
 
-export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, apenasImprimir = false }: ImprimirNotaModalProps) => {
+export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, apenasImprimir = false, apenasVisualizar = false }: ImprimirNotaModalProps) => {
   const [loading, setLoading] = useState(false);
   const [ordemCompleta, setOrdemCompleta] = useState<OrdemServico | null>(null);
   const [loadingOrdem, setLoadingOrdem] = useState(false);
@@ -114,6 +115,9 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
           // Inicializar forma de pagamento se já existir na OS
           if (ordemDetalhada.forma_pagamento) {
             setFormaPagamento(ordemDetalhada.forma_pagamento);
+          } else if (ordemDetalhada.pago_na_entrega && !apenasVisualizar) {
+            // Se for pago na entrega e não for apenas visualizar, definir dinheiro como padrão
+            setFormaPagamento('dinheiro');
           }
         } catch (error) {
           console.error('Erro ao buscar dados completos da OS:', error);
@@ -126,8 +130,9 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
       buscarOrdemCompleta();
     } else {
       setOrdemCompleta(null);
+      setFormaPagamento(''); // Reset ao fechar
     }
-  }, [isOpen, ordem]);
+  }, [isOpen, ordem, apenasVisualizar]);
 
   if (!isOpen || !ordem) return null;
 
@@ -228,37 +233,43 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
   };
 
   const handleConfirmar = async () => {
-    // Validar forma de pagamento
-    if (!formaPagamento) {
+    // Validar forma de pagamento (apenas se não for apenas visualizar)
+    if (!apenasVisualizar && !formaPagamento) {
       alert('Por favor, selecione a forma de pagamento');
       return;
     }
 
     setLoading(true);
     try {
-      // Salvar forma de pagamento na OS
-      if (ordemParaNota) {
-        await ordemServicoService.update(ordemParaNota.id, { forma_pagamento: formaPagamento });
+      // Salvar forma de pagamento na OS (apenas se não for apenas visualizar)
+      if (ordemParaNota && !apenasVisualizar) {
+        // Converter string vazia para undefined (o tipo esperado não aceita string vazia)
+        const formaPagamentoToSave = formaPagamento || undefined;
+        await ordemServicoService.update(ordemParaNota.id, { forma_pagamento: formaPagamentoToSave });
 
         // Atualizar ordemParaNota para usar a forma de pagamento atualizada
         const ordemAtualizada = await ordemServicoService.getById(ordemParaNota.id);
         setOrdemCompleta(ordemAtualizada);
+      }
 
-        if (apenasImprimir) {
-          // Apenas imprimir, não faturar
-          handleImprimir();
-          // Chamar onConfirm para notificar que a nota foi emitida
-          onConfirm();
-          // Aguardar um pouco antes de fechar para garantir que a impressão iniciou
-          setTimeout(() => {
-            onClose();
-          }, 500);
-        } else {
-          // Faturar e imprimir
-          await onConfirm();
-          handleImprimir();
+      if (apenasImprimir) {
+        // Apenas imprimir, não faturar
+        handleImprimir();
+        // Chamar onConfirm para notificar que a nota foi emitida
+        onConfirm();
+        // Aguardar um pouco antes de fechar para garantir que a impressão iniciou
+        setTimeout(() => {
           onClose();
-        }
+        }, 500);
+      } else if (apenasVisualizar) {
+        // Apenas visualizar, faturar sem imprimir
+        await onConfirm();
+        onClose();
+      } else {
+        // Faturar e imprimir (comportamento antigo - não usado mais)
+        await onConfirm();
+        handleImprimir();
+        onClose();
       }
     } catch (error) {
       console.error('Erro:', error);
@@ -272,7 +283,7 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div className="flex-shrink-0 border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-800">{apenasImprimir ? 'Emitir NFC-e' : 'Faturar'} OS #{ordem.numero}</h2>
+          <h2 className="text-xl font-bold text-gray-800">{apenasVisualizar ? 'Faturar' : apenasImprimir ? 'Emitir NFC-e' : 'Faturar'} OS #{ordem.numero}</h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
@@ -284,7 +295,9 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
 
         <div className="p-6 space-y-4">
           <p className="text-gray-700">
-            {apenasImprimir
+            {apenasVisualizar
+              ? `Abaixo está a nota fiscal que foi impressa quando a OS foi entregue.`
+              : apenasImprimir
               ? `Deseja emitir a NFC-e (Nota Fiscal de Consumidor Eletrônica) da OS <strong>#{ordem.numero}</strong>?`
               : `Deseja imprimir a nota fiscal da OS <strong>#{ordem.numero}</strong>?`}
           </p>
@@ -304,33 +317,37 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
             </div>
           )}
 
-          <div className="flex gap-2">
-            <button
-              onClick={handleCopiarTexto}
-              className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm"
-            >
-              📋 Copiar Texto
-            </button>
-          </div>
+          {!apenasVisualizar && (
+            <div className="flex gap-2">
+              <button
+                onClick={handleCopiarTexto}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm"
+              >
+                📋 Copiar Texto
+              </button>
+            </div>
+          )}
 
-          {/* Forma de Pagamento */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Forma de Pagamento *
-            </label>
-            <select
-              value={formaPagamento}
-              onChange={(e) => setFormaPagamento(e.target.value as any)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
-              required
-            >
-              <option value="">Selecione a forma de pagamento</option>
-              <option value="dinheiro">Dinheiro</option>
-              <option value="pix">PIX</option>
-              <option value="cartao_credito">Cartão de Crédito</option>
-              <option value="cartao_debito">Cartão de Débito</option>
-            </select>
-          </div>
+          {/* Forma de Pagamento - apenas se não for apenas visualizar */}
+          {!apenasVisualizar && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Forma de Pagamento *
+              </label>
+              <select
+                value={formaPagamento}
+                onChange={(e) => setFormaPagamento(e.target.value as any)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+                required
+              >
+                <option value="">Selecione a forma de pagamento</option>
+                <option value="dinheiro">Dinheiro</option>
+                <option value="pix">PIX</option>
+                <option value="cartao_credito">Cartão de Crédito</option>
+                <option value="cartao_debito">Cartão de Débito</option>
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="flex-shrink-0 flex justify-end space-x-4 pt-4 px-6 pb-6 border-t border-gray-200 bg-white">
@@ -342,7 +359,16 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
           >
             Cancelar
           </button>
-          {apenasImprimir ? (
+          {apenasVisualizar ? (
+            <button
+              type="button"
+              onClick={handleConfirmar}
+              disabled={loading}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              {loading ? 'Faturando...' : 'Faturar'}
+            </button>
+          ) : apenasImprimir ? (
             <button
               type="button"
               onClick={handleConfirmar}
