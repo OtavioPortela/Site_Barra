@@ -5,7 +5,7 @@ set -e
 echo "Aguardando PostgreSQL..."
 
 # Aguardar até o PostgreSQL estar pronto
-until nc -z db 5432; do
+until nc -z ${DATABASE_HOST} ${DATABASE_PORT:-5432}; do
   echo "PostgreSQL não está disponível ainda - aguardando..."
   sleep 1
 done
