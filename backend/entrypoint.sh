@@ -45,12 +45,23 @@ else:
 EOF
 
 echo "Iniciando servidor..."
+echo "DEBUG - PORT variável: ${PORT:-NÃO DEFINIDA}"
 
-# Usar a porta do Railway ou padrão 8000
-PORT_VALUE="${PORT:-8000}"
-export PORT=$PORT_VALUE
-
-# Executar o comando passado como argumento
-# Se o comando contém $PORT, será expandido pela variável de ambiente
-exec "$@"
+# Se não recebeu comando, usar padrão do gunicorn
+if [ $# -eq 0 ]; then
+    PORT_VALUE="${PORT:-8000}"
+    echo "Nenhum comando fornecido, usando gunicorn padrão na porta $PORT_VALUE"
+    exec gunicorn --bind 0.0.0.0:$PORT_VALUE --workers 3 core.wsgi:application
+else
+    # Se recebeu comando, expandir $PORT se existir
+    PORT_VALUE="${PORT:-8000}"
+    export PORT=$PORT_VALUE
+    
+    # Substituir $PORT no comando se existir
+    CMD="$@"
+    CMD=$(echo "$CMD" | sed "s/\$PORT/$PORT_VALUE/g")
+    
+    echo "Executando comando: $CMD"
+    exec bash -c "$CMD"
+fi
 
