@@ -207,8 +207,13 @@ for origin in ['http://localhost:3000', 'http://localhost:3001', 'http://localho
 # Permitir origens ngrok (qualquer subdomínio .ngrok.io ou .ngrok-free.app)
 # Isso facilita o uso com ngrok sem precisar configurar manualmente
 NGROK_MODE = config('NGROK_MODE', default=False, cast=bool)
-if NGROK_MODE:
-    # Modo ngrok: permitir todas as origens (apenas para desenvolvimento/teste)
+
+# Permitir origens Railway (qualquer subdomínio .railway.app)
+# Isso facilita o deploy na Railway sem precisar configurar manualmente
+RAILWAY_MODE = config('RAILWAY_MODE', default=True, cast=bool)
+
+if NGROK_MODE or RAILWAY_MODE:
+    # Modo ngrok/Railway: permitir todas as origens (apenas para desenvolvimento/teste/produção Railway)
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOWED_ORIGINS = []  # Não usado quando ALLOW_ALL_ORIGINS é True
 else:
