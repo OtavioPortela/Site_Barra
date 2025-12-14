@@ -4,7 +4,13 @@ set -e
 
 echo "Aguardando PostgreSQL..."
 
+# Debug: mostrar variáveis de ambiente do banco
+echo "DEBUG - DATABASE_HOST: ${DATABASE_HOST:-NÃO DEFINIDO}"
+echo "DEBUG - DATABASE_PORT: ${DATABASE_PORT:-NÃO DEFINIDO}"
+echo "DEBUG - DATABASE_NAME: ${DATABASE_NAME:-NÃO DEFINIDO}"
+
 # Aguardar até o PostgreSQL estar pronto
+# Usar variáveis de ambiente do Railway
 until nc -z ${DATABASE_HOST} ${DATABASE_PORT:-5432}; do
   echo "PostgreSQL não está disponível ainda - aguardando..."
   sleep 1
