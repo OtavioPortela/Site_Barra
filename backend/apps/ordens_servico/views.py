@@ -10,14 +10,18 @@ from datetime import datetime, timedelta
 from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
-from .models import Cliente, OrdemServico, Servico
+from .models import Cliente, OrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
 from .permissions import IsStaffOnly
 from .serializers import (
     ClienteSerializer,
     OrdemServicoSerializer,
     OrdemServicoListSerializer,
     OrdemServicoStatusUpdateSerializer,
-    ServicoSerializer
+    ServicoSerializer,
+    EstadoCabeloSerializer,
+    TipoCabeloSerializer,
+    CorCabeloSerializer,
+    CorLinhaSerializer
 )
 from .permissions import IsOwnerOrReadOnly, CanFinalizeOS
 
@@ -330,4 +334,56 @@ class ServicoViewSet(viewsets.ModelViewSet):
         """Soft delete - apenas marca como inativo."""
         instance.ativo = False
         instance.save()
+
+
+class EstadoCabeloViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciamento de estados do cabelo."""
+    queryset = EstadoCabelo.objects.all().order_by('ordem', 'nome')
+    serializer_class = EstadoCabeloSerializer
+    permission_classes = [IsAuthenticated, IsStaffOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['ativo']
+    search_fields = ['nome', 'valor']
+    ordering_fields = ['nome', 'ordem', 'data_criacao']
+    ordering = ['ordem', 'nome']
+    pagination_class = None
+
+
+class TipoCabeloViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciamento de tipos de cabelo."""
+    queryset = TipoCabelo.objects.all().order_by('ordem', 'nome')
+    serializer_class = TipoCabeloSerializer
+    permission_classes = [IsAuthenticated, IsStaffOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['ativo']
+    search_fields = ['nome', 'valor']
+    ordering_fields = ['nome', 'ordem', 'data_criacao']
+    ordering = ['ordem', 'nome']
+    pagination_class = None
+
+
+class CorCabeloViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciamento de cores do cabelo."""
+    queryset = CorCabelo.objects.all().order_by('ordem', 'nome')
+    serializer_class = CorCabeloSerializer
+    permission_classes = [IsAuthenticated, IsStaffOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['ativo']
+    search_fields = ['nome']
+    ordering_fields = ['nome', 'ordem', 'data_criacao']
+    ordering = ['ordem', 'nome']
+    pagination_class = None
+
+
+class CorLinhaViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciamento de cores da linha."""
+    queryset = CorLinha.objects.all().order_by('ordem', 'nome')
+    serializer_class = CorLinhaSerializer
+    permission_classes = [IsAuthenticated, IsStaffOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['ativo']
+    search_fields = ['nome']
+    ordering_fields = ['nome', 'ordem', 'data_criacao']
+    ordering = ['ordem', 'nome']
+    pagination_class = None
 

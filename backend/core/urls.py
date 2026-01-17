@@ -30,6 +30,7 @@ urlpatterns = [
     path('api/ordens-servico/', include('apps.ordens_servico.urls')),
     path('api/faturamento/', include('apps.faturamento.urls')),
     path('api/whatsapp/', include('apps.whatsapp.urls')),
+    path('api/configuracoes/', include('apps.ordens_servico.urls_configuracoes')),
 
     # Swagger Documentation
     path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

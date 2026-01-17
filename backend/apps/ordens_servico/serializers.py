@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.utils import timezone
 from datetime import date
 from django.conf import settings
-from .models import Cliente, OrdemServico, ItemOrdemServico, Servico
+from .models import Cliente, OrdemServico, ItemOrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
 
 
 class DateTimeFieldISO(serializers.DateTimeField):
@@ -236,4 +236,40 @@ class ServicoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Servico
         fields = ['id', 'nome', 'descricao', 'ativo', 'data_criacao']
+        read_only_fields = ['id', 'data_criacao']
+
+
+class EstadoCabeloSerializer(serializers.ModelSerializer):
+    """Serializer para o modelo EstadoCabelo."""
+
+    class Meta:
+        model = EstadoCabelo
+        fields = ['id', 'nome', 'valor', 'ativo', 'ordem', 'data_criacao']
+        read_only_fields = ['id', 'data_criacao']
+
+
+class TipoCabeloSerializer(serializers.ModelSerializer):
+    """Serializer para o modelo TipoCabelo."""
+
+    class Meta:
+        model = TipoCabelo
+        fields = ['id', 'nome', 'valor', 'ativo', 'ordem', 'data_criacao']
+        read_only_fields = ['id', 'data_criacao']
+
+
+class CorCabeloSerializer(serializers.ModelSerializer):
+    """Serializer para o modelo CorCabelo."""
+
+    class Meta:
+        model = CorCabelo
+        fields = ['id', 'nome', 'ativo', 'ordem', 'data_criacao']
+        read_only_fields = ['id', 'data_criacao']
+
+
+class CorLinhaSerializer(serializers.ModelSerializer):
+    """Serializer para o modelo CorLinha."""
+
+    class Meta:
+        model = CorLinha
+        fields = ['id', 'nome', 'ativo', 'ordem', 'data_criacao']
         read_only_fields = ['id', 'data_criacao']
