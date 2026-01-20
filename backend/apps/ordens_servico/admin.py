@@ -4,8 +4,8 @@ from .models import Cliente, OrdemServico, ItemOrdemServico, Servico, EstadoCabe
 
 @admin.register(Cliente)
 class ClienteAdmin(admin.ModelAdmin):
-    list_display = ['nome', 'cnpj_cpf', 'email', 'telefone', 'ativo', 'data_cadastro']
-    list_filter = ['ativo', 'data_cadastro']
+    list_display = ['nome', 'cnpj_cpf', 'email', 'telefone', 'eh_parceiro', 'ativo', 'data_cadastro']
+    list_filter = ['ativo', 'eh_parceiro', 'data_cadastro']
     search_fields = ['nome', 'cnpj_cpf', 'email']
     ordering = ['-data_cadastro']
 

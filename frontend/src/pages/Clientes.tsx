@@ -11,6 +11,7 @@ interface Cliente {
   telefone?: string;
   endereco?: string;
   ativo: boolean;
+  eh_parceiro?: boolean;
   data_cadastro: string;
 }
 
@@ -152,6 +153,12 @@ export const Clientes = () => {
                         <span className="text-xs text-gray-900">{cliente.telefone}</span>
                       </div>
                     )}
+                    {cliente.eh_parceiro && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-gray-500">É Parceiro:</span>
+                        <span className="text-xs font-semibold text-blue-600">Sim</span>
+                      </div>
+                    )}
                     <div className="flex items-center space-x-2">
                       <span className="text-xs text-gray-500">Cadastro:</span>
                       <span className="text-xs text-gray-900">{formatDate(cliente.data_cadastro)}</span>
@@ -182,6 +189,9 @@ export const Clientes = () => {
                       Data de Cadastro
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      É Parceiro
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                   </tr>
@@ -203,6 +213,15 @@ export const Clientes = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">{formatDate(cliente.data_cadastro)}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {cliente.eh_parceiro ? (
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                            Sim
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span

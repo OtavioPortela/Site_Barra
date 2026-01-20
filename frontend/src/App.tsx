@@ -5,12 +5,15 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
+import { ProtectedRoutePatrao } from './components/common/ProtectedRoutePatrao';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Billing } from './pages/Billing';
 import { HistoricoOS } from './pages/HistoricoOS';
 import { Clientes } from './pages/Clientes';
 import { Funcionarios } from './pages/Funcionarios';
+import { Configuracoes } from './pages/Configuracoes';
+import { Debitos } from './pages/Debitos';
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -91,6 +94,26 @@ function AppRoutes() {
           <ProtectedRoute>
             <AppLayout>
               <Funcionarios />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/configuracoes"
+        element={
+          <ProtectedRoutePatrao>
+            <AppLayout>
+              <Configuracoes />
+            </AppLayout>
+          </ProtectedRoutePatrao>
+        }
+      />
+      <Route
+        path="/debitos"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <Debitos />
             </AppLayout>
           </ProtectedRoute>
         }

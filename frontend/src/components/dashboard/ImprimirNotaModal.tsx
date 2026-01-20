@@ -103,6 +103,8 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
   const [ordemCompleta, setOrdemCompleta] = useState<OrdemServico | null>(null);
   const [loadingOrdem, setLoadingOrdem] = useState(false);
   const [formaPagamento, setFormaPagamento] = useState<'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito' | ''>('');
+  const [adicionarAConta, setAdicionarAConta] = useState(false);
+  const [ehParceiro, setEhParceiro] = useState(false);
 
   // Buscar dados completos da OS quando o modal abrir
   useEffect(() => {
@@ -112,12 +114,21 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
         try {
           const ordemDetalhada = await ordemServicoService.getById(ordem.id);
           setOrdemCompleta(ordemDetalhada);
+
+          // Verificar se cliente é parceiro
+          if (ordemDetalhada.cliente_eh_parceiro) {
+            setEhParceiro(true);
+          }
+
           // Inicializar forma de pagamento se já existir na OS
           if (ordemDetalhada.forma_pagamento) {
             setFormaPagamento(ordemDetalhada.forma_pagamento);
           } else if (ordemDetalhada.pago_na_entrega && !apenasVisualizar) {
             // Se for pago na entrega e não for apenas visualizar, definir dinheiro como padrão
             setFormaPagamento('dinheiro');
+          } else if (ordemDetalhada.cliente_eh_parceiro && !ordemDetalhada.forma_pagamento) {
+            // Se for parceiro e não tiver forma de pagamento, pode estar pendurado na conta
+            setAdicionarAConta(true);
           }
         } catch (error) {
           console.error('Erro ao buscar dados completos da OS:', error);
@@ -131,6 +142,8 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
     } else {
       setOrdemCompleta(null);
       setFormaPagamento(''); // Reset ao fechar
+      setAdicionarAConta(false);
+      setEhParceiro(false);
     }
   }, [isOpen, ordem, apenasVisualizar]);
 
@@ -234,17 +247,28 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
 
   const handleConfirmar = async () => {
     // Validar forma de pagamento (apenas se não for apenas visualizar)
-    if (!apenasVisualizar && !formaPagamento) {
-      alert('Por favor, selecione a forma de pagamento');
-      return;
+    // Se for parceiro e marcar adicionar à conta, não precisa validar forma de pagamento
+    if (!apenasVisualizar) {
+      if (ehParceiro && adicionarAConta) {
+        // Parceiro escolheu adicionar à conta, forma_pagamento será null
+      } else if (!ehParceiro && !formaPagamento) {
+        alert('Por favor, selecione a forma de pagamento');
+        return;
+      } else if (ehParceiro && !adicionarAConta && !formaPagamento) {
+        alert('Por favor, selecione a forma de pagamento ou adicione à conta do parceiro');
+        return;
+      }
     }
 
     setLoading(true);
     try {
       // Salvar forma de pagamento na OS (apenas se não for apenas visualizar)
       if (ordemParaNota && !apenasVisualizar) {
-        // Converter string vazia para undefined (o tipo esperado não aceita string vazia)
-        const formaPagamentoToSave = formaPagamento || undefined;
+        // Se for parceiro e marcar adicionar à conta, enviar undefined (null no backend)
+        // Caso contrário, enviar forma de pagamento selecionada
+        const formaPagamentoToSave = (ehParceiro && adicionarAConta)
+          ? undefined
+          : (formaPagamento || undefined);
         await ordemServicoService.update(ordemParaNota.id, { forma_pagamento: formaPagamentoToSave });
 
         // Atualizar ordemParaNota para usar a forma de pagamento atualizada
@@ -330,22 +354,48 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
 
           {/* Forma de Pagamento - apenas se não for apenas visualizar */}
           {!apenasVisualizar && (
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Forma de Pagamento *
-              </label>
-              <select
-                value={formaPagamento}
-                onChange={(e) => setFormaPagamento(e.target.value as any)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
-                required
-              >
-                <option value="">Selecione a forma de pagamento</option>
-                <option value="dinheiro">Dinheiro</option>
-                <option value="pix">PIX</option>
-                <option value="cartao_credito">Cartão de Crédito</option>
-                <option value="cartao_debito">Cartão de Débito</option>
-              </select>
+            <div className="mt-4 space-y-4">
+              {/* Se for parceiro, mostrar opção de adicionar à conta */}
+              {ehParceiro && (
+                <div className="flex items-center space-x-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <input
+                    type="checkbox"
+                    id="adicionarConta"
+                    checked={adicionarAConta}
+                    onChange={(e) => {
+                      setAdicionarAConta(e.target.checked);
+                      if (e.target.checked) {
+                        setFormaPagamento(''); // Limpar forma de pagamento se marcar conta
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="adicionarConta" className="text-sm font-medium text-gray-700 cursor-pointer">
+                    📋 Adicionar à conta do parceiro (deixar pendurado)
+                  </label>
+                </div>
+              )}
+
+              {/* Forma de Pagamento - apenas se não for adicionar à conta */}
+              {!adicionarAConta && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Forma de Pagamento {!ehParceiro && '*'}
+                  </label>
+                  <select
+                    value={formaPagamento}
+                    onChange={(e) => setFormaPagamento(e.target.value as any)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+                    required={!ehParceiro}
+                  >
+                    <option value="">Selecione a forma de pagamento</option>
+                    <option value="dinheiro">Dinheiro</option>
+                    <option value="pix">PIX</option>
+                    <option value="cartao_credito">Cartão de Crédito</option>
+                    <option value="cartao_debito">Cartão de Débito</option>
+                  </select>
+                </div>
+              )}
             </div>
           )}
         </div>

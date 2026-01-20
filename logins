@@ -33,3 +33,27 @@ PGPORT = 5432
 PGDATABASE = railway
 PGUSER = postgres
 PGPASSWORD = LWsONwogoqBXrItzrQiebZgXELGRuUcE
+
+
+---------------------------------------------------------------------------------------------
+dominio public
+sitebarra-production.up.railway.app
+
+------------------------------------------------------------------------------
+site:
+glistening-respect-production-7330.up.railway.app
+
+
+login funcionario:
+func@barraconfeccoes.com
+Barr@12345678
+
+
+
+login chefe:
+admin@barraconfeccoes.com
+admin123
+
+
+HOSPEDADO:
+https://railway.com/project/949c09df-1c13-448b-8eed-30cae96cf50a?environmentId=ec36114f-45e1-43ce-a82d-c6d046124382

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { LoginCredentials, OrdemServico, BillingData } from '../types';
+import type { LoginCredentials, OrdemServico, BillingData, Debito, Cliente } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -196,16 +196,7 @@ export const clienteService = {
   getAll: async (filters?: {
     ativo?: boolean;
     search?: string;
-  }): Promise<Array<{
-    id: number;
-    nome: string;
-    cnpj_cpf: string;
-    email?: string;
-    telefone?: string;
-    endereco?: string;
-    ativo: boolean;
-    data_cadastro: string;
-  }>> => {
+  }): Promise<Cliente[]> => {
     const response = await api.get('/clientes/', { params: filters });
     // A API pode retornar um objeto paginado ou um array direto
     const data = response.data;
@@ -223,6 +214,7 @@ export const clienteService = {
     email?: string;
     telefone?: string;
     endereco?: string;
+    eh_parceiro?: boolean;
   }) => {
     const response = await api.post('/clientes/', data);
     return response.data;
@@ -251,6 +243,120 @@ export const servicoService = {
   }) => {
     const response = await api.post('/servicos/', data);
     return response.data;
+  },
+
+  update: async (id: number, data: Partial<{ nome: string; descricao?: string; ativo?: boolean }>) => {
+    const response = await api.patch(`/servicos/${id}/`, data);
+    return response.data;
+  },
+
+  delete: async (id: number) => {
+    await api.delete(`/servicos/${id}/`);
+  },
+};
+
+export const estadoCabeloService = {
+  getAll: async (filters?: { ativo?: boolean }): Promise<Array<{ id: number; nome: string; valor: string; ativo: boolean; ordem: number }>> => {
+    const response = await api.get('/configuracoes/estado-cabelo/', { params: filters });
+    const data = response.data;
+    return Array.isArray(data) ? data : (data.results || []);
+  },
+  create: async (data: { nome: string; valor: string; ativo?: boolean; ordem?: number }) => {
+    const response = await api.post('/configuracoes/estado-cabelo/', data);
+    return response.data;
+  },
+  update: async (id: number, data: Partial<{ nome: string; valor: string; ativo: boolean; ordem: number }>) => {
+    const response = await api.patch(`/configuracoes/estado-cabelo/${id}/`, data);
+    return response.data;
+  },
+  delete: async (id: number) => {
+    await api.delete(`/configuracoes/estado-cabelo/${id}/`);
+  },
+};
+
+export const tipoCabeloService = {
+  getAll: async (filters?: { ativo?: boolean }): Promise<Array<{ id: number; nome: string; valor: string; ativo: boolean; ordem: number }>> => {
+    const response = await api.get('/configuracoes/tipo-cabelo/', { params: filters });
+    const data = response.data;
+    return Array.isArray(data) ? data : (data.results || []);
+  },
+  create: async (data: { nome: string; valor: string; ativo?: boolean; ordem?: number }) => {
+    const response = await api.post('/configuracoes/tipo-cabelo/', data);
+    return response.data;
+  },
+  update: async (id: number, data: Partial<{ nome: string; valor: string; ativo: boolean; ordem: number }>) => {
+    const response = await api.patch(`/configuracoes/tipo-cabelo/${id}/`, data);
+    return response.data;
+  },
+  delete: async (id: number) => {
+    await api.delete(`/configuracoes/tipo-cabelo/${id}/`);
+  },
+};
+
+export const corCabeloService = {
+  getAll: async (filters?: { ativo?: boolean }): Promise<Array<{ id: number; nome: string; ativo: boolean; ordem: number }>> => {
+    const response = await api.get('/configuracoes/cor-cabelo/', { params: filters });
+    const data = response.data;
+    return Array.isArray(data) ? data : (data.results || []);
+  },
+  create: async (data: { nome: string; ativo?: boolean; ordem?: number }) => {
+    const response = await api.post('/configuracoes/cor-cabelo/', data);
+    return response.data;
+  },
+  update: async (id: number, data: Partial<{ nome: string; ativo: boolean; ordem: number }>) => {
+    const response = await api.patch(`/configuracoes/cor-cabelo/${id}/`, data);
+    return response.data;
+  },
+  delete: async (id: number) => {
+    await api.delete(`/configuracoes/cor-cabelo/${id}/`);
+  },
+};
+
+export const corLinhaService = {
+  getAll: async (filters?: { ativo?: boolean }): Promise<Array<{ id: number; nome: string; ativo: boolean; ordem: number }>> => {
+    const response = await api.get('/configuracoes/cor-linha/', { params: filters });
+    const data = response.data;
+    return Array.isArray(data) ? data : (data.results || []);
+  },
+  create: async (data: { nome: string; ativo?: boolean; ordem?: number }) => {
+    const response = await api.post('/configuracoes/cor-linha/', data);
+    return response.data;
+  },
+  update: async (id: number, data: Partial<{ nome: string; ativo: boolean; ordem: number }>) => {
+    const response = await api.patch(`/configuracoes/cor-linha/${id}/`, data);
+    return response.data;
+  },
+  delete: async (id: number) => {
+    await api.delete(`/configuracoes/cor-linha/${id}/`);
+  },
+};
+
+export const debitoService = {
+  getAll: async (parceiroId?: number): Promise<Debito[]> => {
+    const params: any = {};
+    if (parceiroId) {
+      params.parceiro_id = parceiroId;
+    }
+    const response = await api.get('/debitos/', { params });
+    const data = response.data;
+    return Array.isArray(data) ? data : (data.results || []);
+  },
+
+  exportarNota: async (parceiroId: number, formato: 'pdf' | 'excel' = 'excel'): Promise<Blob> => {
+    const response = await api.get('/debitos/exportar-nota/', {
+      params: {
+        parceiro_id: parceiroId,
+        formato: formato,
+      },
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  marcarComoPago: async (debitoId: number, formaPagamento: 'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito'): Promise<void> => {
+    await api.patch(`/debitos/${debitoId}/marcar-pago/`, {
+      forma_pagamento: formaPagamento,
+    });
   },
 };
 

@@ -11,6 +11,11 @@ class Cliente(models.Model):
     telefone = models.CharField(max_length=20)
     endereco = models.TextField(blank=True)
     ativo = models.BooleanField(default=True)
+    eh_parceiro = models.BooleanField(
+        default=False,
+        verbose_name='É Parceiro',
+        help_text='Indica se o cliente tem vínculo de parceiro (pode deixar pendurado na conta)'
+    )
     data_cadastro = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -60,16 +60,22 @@ export const OSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar, onEmit
   return (
     <div className="bg-white rounded-lg shadow-md p-4 mb-4 hover:shadow-lg transition-shadow border-l-4 border-blue-500">
       <div className="flex justify-between items-start mb-2">
-        <div>
-          <h3 className="font-semibold text-lg text-gray-800">OS #{ordem.numero}</h3>
-          <p className="text-sm text-gray-600 mt-1">{ordem.cliente}</p>
+        <div className="flex-1">
+          <h3 className="font-semibold text-lg text-gray-800">
+            {ordem.servico && ordem.servico.toString().trim() !== ''
+              ? `${ordem.servico.toString().trim()} - ${ordem.cliente}`
+              : ordem.cliente}
+          </h3>
+          <p className="text-xs text-gray-500 mt-1">OS #{ordem.numero}</p>
         </div>
         <span className={`px-2 py-1 text-xs font-medium rounded border ${getStatusColor(ordem.status)}`}>
           {ordem.status === 'pendente' ? 'Pendente' : ordem.status === 'em_desenvolvimento' ? 'Em Dev' : 'Finalizada'}
         </span>
       </div>
 
-      <p className="text-sm text-gray-700 mb-3 line-clamp-2">{ordem.descricao}</p>
+      {ordem.descricao && (
+        <p className="text-sm text-gray-700 mb-3 line-clamp-2">{ordem.descricao}</p>
+      )}
 
       <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-3">
         <div>
