@@ -21,7 +21,9 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     { path: '/faturamento', label: 'Faturamento', icon: '💰', requiresStaff: true },
     { path: '/historico-os', label: 'Histórico OS', icon: '📋', requiresStaff: true },
     { path: '/clientes', label: 'Clientes', icon: '👥', requiresStaff: false },
+    { path: '/debitos', label: 'Débitos', icon: '📝', requiresStaff: false },
     { path: '/funcionarios', label: 'Funcionários', icon: '👔', requiresStaff: true },
+    { path: '/configuracoes', label: 'Configurações', icon: '⚙️', requiresStaff: true },
   ].filter(item => !item.requiresStaff || isPatraoValue);
 
   const handleLinkClick = () => {

@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.utils import timezone
 from datetime import date
 from django.conf import settings
-from .models import Cliente, OrdemServico, ItemOrdemServico, Servico
+from .models import Cliente, OrdemServico, ItemOrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
 
 
 class DateTimeFieldISO(serializers.DateTimeField):
@@ -15,10 +15,11 @@ class DateTimeFieldISO(serializers.DateTimeField):
 
 class ClienteSerializer(serializers.ModelSerializer):
     """Serializer para o modelo Cliente."""
+    eh_parceiro = serializers.BooleanField(default=False, required=False)
 
     class Meta:
         model = Cliente
-        fields = ['id', 'nome', 'cnpj_cpf', 'email', 'telefone', 'endereco', 'ativo', 'data_cadastro']
+        fields = ['id', 'nome', 'cnpj_cpf', 'email', 'telefone', 'endereco', 'ativo', 'eh_parceiro', 'data_cadastro']
         read_only_fields = ['id', 'data_cadastro']
 
     def validate_cnpj_cpf(self, value):
@@ -50,6 +51,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
     )
     cliente_nome = serializers.CharField(source='cliente.nome', read_only=True)
     cliente_telefone = serializers.CharField(source='cliente.telefone', read_only=True)
+    cliente_eh_parceiro = serializers.BooleanField(source='cliente.eh_parceiro', read_only=True)
     servico = serializers.SerializerMethodField()
     servico_id = serializers.PrimaryKeyRelatedField(
         queryset=Servico.objects.filter(ativo=True),
@@ -70,7 +72,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrdemServico
         fields = [
-            'id', 'numero', 'cliente', 'cliente_id', 'cliente_nome', 'cliente_telefone', 'descricao', 'status',
+            'id', 'numero', 'cliente', 'cliente_id', 'cliente_nome', 'cliente_telefone', 'cliente_eh_parceiro', 'descricao', 'status',
             'estado_cabelo', 'tipo_cabelo', 'cor_cabelo', 'peso_gramas',
             'tamanho_cabelo_cm', 'cor_linha', 'servico', 'servico_id', 'servico_nome', 'valor_metro',
             'valor', 'data_criacao', 'prazo_entrega', 'data_finalizacao', 'faturada', 'data_faturamento',
@@ -123,16 +125,17 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
                 cliente = Cliente.objects.filter(nome=cliente_str, ativo=True).first()
                 attrs['cliente'] = cliente
 
-        # Se serviço foi enviado como string (nome), buscar pelo nome
+        # Se serviço foi enviado como string (nome), buscar pelo nome ou criar se não existir
         servico_str = self.initial_data.get('servico')
-        if servico_str and isinstance(servico_str, str) and not attrs.get('servico'):
+        if servico_str and isinstance(servico_str, str) and servico_str.strip() and not attrs.get('servico'):
             try:
+                # Tenta buscar o serviço existente
                 servico = Servico.objects.get(nome=servico_str, ativo=True)
                 attrs['servico'] = servico
             except Servico.DoesNotExist:
-                raise serializers.ValidationError({
-                    'servico': f'Serviço "{servico_str}" não encontrado.'
-                })
+                # Se não existir, cria automaticamente
+                servico = Servico.objects.create(nome=servico_str.strip(), ativo=True)
+                attrs['servico'] = servico
             except Servico.MultipleObjectsReturned:
                 # Se houver múltiplos, pegar o primeiro
                 servico = Servico.objects.filter(nome=servico_str, ativo=True).first()
@@ -191,6 +194,8 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
     """Serializer simplificado para listagem de OS."""
     cliente = serializers.CharField(source='cliente.nome', read_only=True)
     cliente_telefone = serializers.CharField(source='cliente.telefone', read_only=True)
+    cliente_eh_parceiro = serializers.BooleanField(source='cliente.eh_parceiro', read_only=True)
+    servico = serializers.CharField(source='servico.nome', read_only=True)
     data_criacao = DateTimeFieldISO(read_only=True)
     prazo_entrega = serializers.DateField()
     data_finalizacao = DateTimeFieldISO(read_only=True, allow_null=True)
@@ -199,8 +204,8 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrdemServico
         fields = [
-            'id', 'numero', 'cliente', 'cliente_telefone', 'descricao', 'status',
-            'valor', 'data_criacao', 'prazo_entrega', 'data_finalizacao', 'faturada', 'entregue', 'pago_na_entrega', 'foto_entrega', 'forma_pagamento'
+            'id', 'numero', 'cliente', 'cliente_telefone', 'cliente_eh_parceiro', 'descricao', 'status',
+            'servico', 'valor', 'data_criacao', 'prazo_entrega', 'data_finalizacao', 'faturada', 'entregue', 'pago_na_entrega', 'foto_entrega', 'forma_pagamento'
         ]
 
 
@@ -236,4 +241,40 @@ class ServicoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Servico
         fields = ['id', 'nome', 'descricao', 'ativo', 'data_criacao']
+        read_only_fields = ['id', 'data_criacao']
+
+
+class EstadoCabeloSerializer(serializers.ModelSerializer):
+    """Serializer para o modelo EstadoCabelo."""
+
+    class Meta:
+        model = EstadoCabelo
+        fields = ['id', 'nome', 'valor', 'ativo', 'ordem', 'data_criacao']
+        read_only_fields = ['id', 'data_criacao']
+
+
+class TipoCabeloSerializer(serializers.ModelSerializer):
+    """Serializer para o modelo TipoCabelo."""
+
+    class Meta:
+        model = TipoCabelo
+        fields = ['id', 'nome', 'valor', 'ativo', 'ordem', 'data_criacao']
+        read_only_fields = ['id', 'data_criacao']
+
+
+class CorCabeloSerializer(serializers.ModelSerializer):
+    """Serializer para o modelo CorCabelo."""
+
+    class Meta:
+        model = CorCabelo
+        fields = ['id', 'nome', 'ativo', 'ordem', 'data_criacao']
+        read_only_fields = ['id', 'data_criacao']
+
+
+class CorLinhaSerializer(serializers.ModelSerializer):
+    """Serializer para o modelo CorLinha."""
+
+    class Meta:
+        model = CorLinha
+        fields = ['id', 'nome', 'ativo', 'ordem', 'data_criacao']
         read_only_fields = ['id', 'data_criacao']

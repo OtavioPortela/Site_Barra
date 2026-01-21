@@ -123,7 +123,12 @@ def enviar_nota_os(request):
     mensagem = f"Olá {ordem_servico.cliente.nome if ordem_servico.cliente else 'Cliente'}!\n\n"
     mensagem += f"Seu pedido *{ordem_servico.numero}* já está pronto para retirada! 🎉\n\n"
     mensagem += "Aguardamos você em nossa loja.\n\n"
-    mensagem += "Obrigado pela preferência! 🙏"
+    mensagem += "Obrigado pela preferência! 🙏\n\n"
+    mensagem += "💬 *Ajude-nos a melhorar!*\n"
+    mensagem += "Avalie nossa loja no Google Maps:\n"
+    mensagem += "https://www.google.com/maps/place/Barra+confec%C3%A7%C3%B5es/data=!4m2!3m1!1s0x0:0x867cefdc13357c1d?sa=X&ved=1t:2428&ictx=111\n\n"
+    mensagem += "📱 *Não esqueça de seguir nossa página no Instagram:*\n"
+    mensagem += "https://www.instagram.com/barraconfeccoes?igsh=MWprYml1aGx0b3duMg=="
 
     try:
         service = WhatsAppService()

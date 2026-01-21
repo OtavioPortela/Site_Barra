@@ -10,14 +10,18 @@ from datetime import datetime, timedelta
 from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
-from .models import Cliente, OrdemServico, Servico
+from .models import Cliente, OrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
 from .permissions import IsStaffOnly
 from .serializers import (
     ClienteSerializer,
     OrdemServicoSerializer,
     OrdemServicoListSerializer,
     OrdemServicoStatusUpdateSerializer,
-    ServicoSerializer
+    ServicoSerializer,
+    EstadoCabeloSerializer,
+    TipoCabeloSerializer,
+    CorCabeloSerializer,
+    CorLinhaSerializer
 )
 from .permissions import IsOwnerOrReadOnly, CanFinalizeOS
 
@@ -330,4 +334,239 @@ class ServicoViewSet(viewsets.ModelViewSet):
         """Soft delete - apenas marca como inativo."""
         instance.ativo = False
         instance.save()
+
+
+class EstadoCabeloViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciamento de estados do cabelo."""
+    queryset = EstadoCabelo.objects.all().order_by('ordem', 'nome')
+    serializer_class = EstadoCabeloSerializer
+    permission_classes = [IsAuthenticated, IsStaffOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['ativo']
+    search_fields = ['nome', 'valor']
+    ordering_fields = ['nome', 'ordem', 'data_criacao']
+    ordering = ['ordem', 'nome']
+    pagination_class = None
+
+
+class TipoCabeloViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciamento de tipos de cabelo."""
+    queryset = TipoCabelo.objects.all().order_by('ordem', 'nome')
+    serializer_class = TipoCabeloSerializer
+    permission_classes = [IsAuthenticated, IsStaffOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['ativo']
+    search_fields = ['nome', 'valor']
+    ordering_fields = ['nome', 'ordem', 'data_criacao']
+    ordering = ['ordem', 'nome']
+    pagination_class = None
+
+
+class CorCabeloViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciamento de cores do cabelo."""
+    queryset = CorCabelo.objects.all().order_by('ordem', 'nome')
+    serializer_class = CorCabeloSerializer
+    permission_classes = [IsAuthenticated, IsStaffOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['ativo']
+    search_fields = ['nome']
+    ordering_fields = ['nome', 'ordem', 'data_criacao']
+    ordering = ['ordem', 'nome']
+    pagination_class = None
+
+
+class CorLinhaViewSet(viewsets.ModelViewSet):
+    """ViewSet para gerenciamento de cores da linha."""
+    queryset = CorLinha.objects.all().order_by('ordem', 'nome')
+    serializer_class = CorLinhaSerializer
+    permission_classes = [IsAuthenticated, IsStaffOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['ativo']
+    search_fields = ['nome']
+    ordering_fields = ['nome', 'ordem', 'data_criacao']
+    ordering = ['ordem', 'nome']
+    pagination_class = None
+
+
+class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para gerenciamento de débitos de clientes parceiros."""
+    serializer_class = OrdemServicoListSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['status']
+    search_fields = ['numero', 'cliente__nome', 'descricao']
+    ordering_fields = ['data_criacao', 'prazo_entrega', 'valor']
+    ordering = ['-data_criacao']
+    pagination_class = None
+
+    def get_queryset(self):
+        """Retorna apenas OS de clientes parceiros sem forma de pagamento."""
+        queryset = OrdemServico.objects.filter(
+            cliente__eh_parceiro=True,
+            forma_pagamento__isnull=True
+        ).select_related('cliente', 'servico')
+
+        # Filtro por parceiro_id
+        parceiro_id = self.request.query_params.get('parceiro_id')
+        if parceiro_id:
+            queryset = queryset.filter(cliente_id=parceiro_id)
+
+        return queryset
+
+    @action(detail=True, methods=['patch'])
+    def marcar_pago(self, request, pk=None):
+        """Marca um débito como pago, atualizando a forma de pagamento."""
+        debito = self.get_object()
+        forma_pagamento = request.data.get('forma_pagamento')
+
+        if not forma_pagamento:
+            return Response(
+                {'erro': 'Forma de pagamento é obrigatória.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if forma_pagamento not in ['dinheiro', 'pix', 'cartao_credito', 'cartao_debito']:
+            return Response(
+                {'erro': 'Forma de pagamento inválida.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        debito.forma_pagamento = forma_pagamento
+        debito.save()
+
+        serializer = self.get_serializer(debito)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='exportar-nota')
+    def exportar_nota(self, request):
+        """Exporta nota de débitos de um parceiro em formato Excel."""
+        parceiro_id = request.query_params.get('parceiro_id')
+        formato = request.query_params.get('formato', 'excel').lower()
+
+        if not parceiro_id:
+            return Response(
+                {'erro': 'parceiro_id é obrigatório.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            parceiro = Cliente.objects.get(id=parceiro_id, eh_parceiro=True)
+        except Cliente.DoesNotExist:
+            return Response(
+                {'erro': 'Cliente parceiro não encontrado.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Buscar débitos do parceiro
+        debitos = OrdemServico.objects.filter(
+            cliente_id=parceiro_id,
+            forma_pagamento__isnull=True
+        ).order_by('data_criacao')
+
+        if formato == 'excel':
+            # Criar workbook
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Nota de Débitos"
+
+            # Cabeçalho da empresa
+            ws.merge_cells('A1:E1')
+            ws['A1'] = 'BARRA CONFECCOES LTDA'
+            ws['A1'].font = Font(bold=True, size=16)
+            ws['A1'].alignment = Alignment(horizontal='center')
+
+            ws.merge_cells('A2:E2')
+            ws['A2'] = 'Nota de Débitos - Parceiro'
+            ws['A2'].font = Font(bold=True, size=14)
+            ws['A2'].alignment = Alignment(horizontal='center')
+
+            # Dados do parceiro
+            row = 4
+            ws[f'A{row}'] = 'Cliente:'
+            ws[f'A{row}'].font = Font(bold=True)
+            ws[f'B{row}'] = parceiro.nome
+            row += 1
+
+            if parceiro.cnpj_cpf:
+                ws[f'A{row}'] = 'CNPJ/CPF:'
+                ws[f'A{row}'].font = Font(bold=True)
+                ws[f'B{row}'] = parceiro.cnpj_cpf
+                row += 1
+
+            if parceiro.telefone:
+                ws[f'A{row}'] = 'Telefone:'
+                ws[f'A{row}'].font = Font(bold=True)
+                ws[f'B{row}'] = parceiro.telefone
+                row += 1
+
+            if parceiro.endereco:
+                ws[f'A{row}'] = 'Endereço:'
+                ws[f'A{row}'].font = Font(bold=True)
+                ws[f'B{row}'] = parceiro.endereco
+                row += 1
+
+            row += 1
+            ws[f'A{row}'] = f'Data de Emissão: {timezone.now().strftime("%d/%m/%Y %H:%M")}'
+            ws[f'A{row}'].font = Font(bold=True)
+
+            # Cabeçalhos da tabela
+            row += 2
+            headers = ['Data', 'OS', 'Descrição/Serviço', 'Valor (R$)']
+            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF")
+            header_alignment = Alignment(horizontal="center", vertical="center")
+
+            for col_num, header in enumerate(headers, 1):
+                cell = ws.cell(row=row, column=col_num, value=header)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = header_alignment
+
+            # Dados das OS
+            total = 0
+            for debito in debitos:
+                row += 1
+                ws.cell(row=row, column=1, value=debito.data_criacao.strftime('%d/%m/%Y') if debito.data_criacao else '')
+                ws.cell(row=row, column=2, value=debito.numero)
+
+                # Descrição ou serviço
+                descricao_servico = debito.servico.nome if debito.servico else (debito.descricao or '')
+                ws.cell(row=row, column=3, value=descricao_servico)
+
+                valor = float(debito.valor) if debito.valor else 0
+                ws.cell(row=row, column=4, value=valor)
+                total += valor
+
+            # Rodapé com total
+            row += 2
+            ws.merge_cells(f'C{row}:D{row}')
+            ws[f'C{row}'] = 'TOTAL:'
+            ws[f'C{row}'].font = Font(bold=True, size=12)
+            ws[f'C{row}'].alignment = Alignment(horizontal='right')
+            ws[f'E{row}'] = total
+            ws[f'E{row}'].font = Font(bold=True, size=12)
+            ws[f'E{row}'].number_format = '#,##0.00'
+
+            # Ajustar largura das colunas
+            ws.column_dimensions['A'].width = 15
+            ws.column_dimensions['B'].width = 15
+            ws.column_dimensions['C'].width = 40
+            ws.column_dimensions['D'].width = 15
+            ws.column_dimensions['E'].width = 15
+
+            # Criar resposta HTTP
+            response = HttpResponse(
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            nome_arquivo = f'nota_debitos_{parceiro.nome.replace(" ", "_")}_{timezone.now().strftime("%Y%m%d")}.xlsx'
+            response['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
+
+            wb.save(response)
+            return response
+
+        # PDF ainda não implementado
+        return Response(
+            {'erro': 'Formato PDF ainda não está disponível. Use formato "excel".'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 

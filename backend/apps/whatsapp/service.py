@@ -45,7 +45,7 @@ class WhatsAppService:
         # Garantir que From e To sejam diferentes
         numero_to = f'whatsapp:+{numero_limpo}'
         numero_from = self.whatsapp_from
-        
+
         # Se From e To forem iguais, lançar erro
         if numero_from == numero_to:
             raise ValueError(f"Não é possível enviar mensagem: número de origem ({numero_from}) e destino ({numero_to}) são iguais. Verifique se o cliente não está usando o mesmo número do Twilio Sandbox.")
@@ -130,7 +130,7 @@ class WhatsAppService:
         # Garantir que From e To sejam diferentes
         numero_to = f'whatsapp:+{numero_limpo}'
         numero_from = self.whatsapp_from
-        
+
         # Se From e To forem iguais, lançar erro
         if numero_from == numero_to:
             raise ValueError(f"Não é possível enviar mensagem: número de origem ({numero_from}) e destino ({numero_to}) são iguais. Verifique se o cliente não está usando o mesmo número do Twilio Sandbox.")

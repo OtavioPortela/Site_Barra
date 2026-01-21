@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { clienteService, ordemServicoService } from '../../services/api';
+import { clienteService, corCabeloService, corLinhaService, estadoCabeloService, ordemServicoService, tipoCabeloService } from '../../services/api';
 import { whatsappService } from '../../services/whatsappService';
 import { CreateClienteModal } from './CreateClienteModal';
+import type { Cliente } from '../../types';
 
 // Importação do servicoService - usando type assertion para evitar erro de cache do TypeScript
 import * as apiModule from '../../services/api';
@@ -23,17 +24,22 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
     prazo_entrega: '',
     observacoes: '',
     pago_na_entrega: false,
-    // Campos de confecções
-    estado_cabelo: 'novo',
-    tipo_cabelo: 'liso',
+    // Campos de confecções - serão preenchidos do banco
+    estado_cabelo: '',
+    tipo_cabelo: '',
     cor_cabelo: '',
     peso_gramas: '',
     tamanho_cabelo_cm: '',
     cor_linha: '',
     servico: '',
   });
-  const [clientes, setClientes] = useState<Array<{ id: number; nome: string }>>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
   const [servicos, setServicos] = useState<Array<{ id: number; nome: string }>>([]);
+  const [estadosCabelo, setEstadosCabelo] = useState<Array<{ id: number; nome: string; valor: string }>>([]);
+  const [tiposCabelo, setTiposCabelo] = useState<Array<{ id: number; nome: string; valor: string }>>([]);
+  const [coresCabelo, setCoresCabelo] = useState<Array<{ id: number; nome: string }>>([]);
+  const [coresLinha, setCoresLinha] = useState<Array<{ id: number; nome: string }>>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showCreateCliente, setShowCreateCliente] = useState(false);
@@ -44,11 +50,23 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [showClienteDropdown, setShowClienteDropdown] = useState(false);
+  const [filteredClientes, setFilteredClientes] = useState<Array<{ id: number; nome: string }>>([]);
+  const clienteInputRef = useRef<HTMLInputElement>(null);
+  const clienteDropdownRef = useRef<HTMLDivElement>(null);
+  const [showServicoDropdown, setShowServicoDropdown] = useState(false);
+  const [filteredServicos, setFilteredServicos] = useState<Array<{ id: number; nome: string }>>([]);
+  const servicoInputRef = useRef<HTMLInputElement>(null);
+  const servicoDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       loadClientes();
       loadServicos();
+      loadEstadosCabelo();
+      loadTiposCabelo();
+      loadCoresCabelo();
+      loadCoresLinha();
     }
   }, [isOpen]);
 
@@ -56,9 +74,11 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
     try {
       const data = await clienteService.getAll({ ativo: true });
       setClientes(data);
+      setFilteredClientes(data);
     } catch (error) {
       console.error('Erro ao carregar clientes:', error);
       setClientes([]); // Garantir que sempre seja um array
+      setFilteredClientes([]);
     }
   };
 
@@ -66,9 +86,88 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
     try {
       const data = await servicoService.getAll({ ativo: true });
       setServicos(data);
+      setFilteredServicos(data);
     } catch (error) {
       console.error('Erro ao carregar serviços:', error);
       setServicos([]); // Garantir que sempre seja um array
+      setFilteredServicos([]);
+    }
+  };
+
+  const loadEstadosCabelo = async () => {
+    try {
+      const data = await estadoCabeloService.getAll({ ativo: true });
+      setEstadosCabelo(data);
+    } catch (error) {
+      console.error('Erro ao carregar estados do cabelo:', error);
+      setEstadosCabelo([]);
+    }
+  };
+
+  const loadTiposCabelo = async () => {
+    try {
+      const data = await tipoCabeloService.getAll({ ativo: true });
+      setTiposCabelo(data);
+    } catch (error) {
+      console.error('Erro ao carregar tipos de cabelo:', error);
+      setTiposCabelo([]);
+    }
+  };
+
+  const loadCoresCabelo = async () => {
+    try {
+      const data = await corCabeloService.getAll({ ativo: true });
+      setCoresCabelo(data);
+    } catch (error) {
+      console.error('Erro ao carregar cores do cabelo:', error);
+      setCoresCabelo([]);
+    }
+  };
+
+  const loadCoresLinha = async () => {
+    try {
+      const data = await corLinhaService.getAll({ ativo: true });
+      setCoresLinha(data);
+    } catch (error) {
+      console.error('Erro ao carregar cores da linha:', error);
+      setCoresLinha([]);
+    }
+  };
+
+  const handleClienteInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, cliente: value });
+    setErrors({ ...errors, cliente: '' });
+
+    // Filtrar clientes baseado no que foi digitado
+    if (value.trim()) {
+      const filtered = clientes.filter(cliente =>
+        cliente.nome.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredClientes(filtered);
+      setShowClienteDropdown(true);
+    } else {
+      setFilteredClientes(clientes);
+      setShowClienteDropdown(true);
+    }
+  };
+
+  const handleSelectCliente = async (nomeCliente: string) => {
+    setFormData({ ...formData, cliente: nomeCliente });
+    setShowClienteDropdown(false);
+
+    // Buscar dados completos do cliente selecionado
+    const clienteCompleto = clientes.find(c => c.nome === nomeCliente);
+    if (clienteCompleto) {
+      try {
+        const clienteDetalhado = await clienteService.getById(clienteCompleto.id);
+        setClienteSelecionado(clienteDetalhado);
+      } catch (error) {
+        console.error('Erro ao buscar dados do cliente:', error);
+        setClienteSelecionado(clienteCompleto);
+      }
+    } else {
+      setClienteSelecionado(null);
     }
   };
 
@@ -77,7 +176,58 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
     loadClientes();
     // Preencher o campo cliente com o nome do novo cliente
     setFormData({ ...formData, cliente: clienteNome });
+    setShowClienteDropdown(false);
   };
+
+  const handleServicoInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, servico: value });
+    setErrors({ ...errors, servico: '' });
+
+    // Filtrar serviços baseado no que foi digitado
+    if (value.trim()) {
+      const filtered = servicos.filter(servico =>
+        servico.nome.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredServicos(filtered);
+      setShowServicoDropdown(true);
+    } else {
+      setFilteredServicos(servicos);
+      setShowServicoDropdown(true);
+    }
+  };
+
+  const handleSelectServico = (nomeServico: string) => {
+    setFormData({ ...formData, servico: nomeServico });
+    setShowServicoDropdown(false);
+  };
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        clienteInputRef.current &&
+        !clienteInputRef.current.contains(event.target as Node) &&
+        clienteDropdownRef.current &&
+        !clienteDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowClienteDropdown(false);
+      }
+      if (
+        servicoInputRef.current &&
+        !servicoInputRef.current.contains(event.target as Node) &&
+        servicoDropdownRef.current &&
+        !servicoDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowServicoDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Limpar foto quando modal fechar
   useEffect(() => {
@@ -85,6 +235,8 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
       setFotoFile(null);
       setFotoPreview(null);
       setShowFotoOptions(false);
+      setShowClienteDropdown(false);
+      setShowServicoDropdown(false);
       if (cameraStream) {
         cameraStream.getTracks().forEach(track => track.stop());
         setCameraStream(null);
@@ -208,15 +360,24 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
       newErrors.cliente = 'Cliente é obrigatório';
     }
 
-    if (!formData.servico) {
-      newErrors.servico = 'Serviço é obrigatório';
+    // Validação condicional para forma de pagamento
+    // Se cliente NÃO é parceiro, forma de pagamento é obrigatória (ou pago_na_entrega)
+    if (clienteSelecionado && !clienteSelecionado.eh_parceiro && !formData.pago_na_entrega) {
+      // Para clientes não parceiros, forma de pagamento será obrigatória na finalização
+      // Mas na criação da OS não é necessário validar aqui
+    }
+
+    // Serviço agora é opcional
+
+    if (!formData.estado_cabelo) {
+      newErrors.estado_cabelo = 'Estado do cabelo é obrigatório';
     }
 
     if (!formData.tipo_cabelo) {
       newErrors.tipo_cabelo = 'Tipo de cabelo é obrigatório';
     }
 
-    if (!formData.cor_cabelo.trim()) {
+    if (!formData.cor_cabelo) {
       newErrors.cor_cabelo = 'Cor do cabelo é obrigatória';
     }
 
@@ -228,7 +389,7 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
       newErrors.tamanho_cabelo_cm = 'Tamanho do cabelo deve ser maior que zero';
     }
 
-    if (!formData.cor_linha.trim()) {
+    if (!formData.cor_linha) {
       newErrors.cor_linha = 'Cor da linha é obrigatória';
     }
 
@@ -333,8 +494,8 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
         prazo_entrega: '',
         observacoes: '',
         pago_na_entrega: false,
-        estado_cabelo: 'novo',
-        tipo_cabelo: 'liso',
+        estado_cabelo: '',
+        tipo_cabelo: '',
         cor_cabelo: '',
         peso_gramas: '',
         tamanho_cabelo_cm: '',
@@ -408,25 +569,73 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                     + Novo Cliente
                   </button>
                 </div>
-                <input
-                  id="cliente"
-                  type="text"
-                  list="clientes-list"
-                  value={formData.cliente}
-                  onChange={(e) => {
-                    setFormData({ ...formData, cliente: e.target.value });
-                    setErrors({ ...errors, cliente: '' });
-                  }}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.cliente ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Digite o nome do cliente"
-                />
-                <datalist id="clientes-list">
-                  {clientes.map((cliente) => (
-                    <option key={cliente.id} value={cliente.nome} />
-                  ))}
-                </datalist>
+                <div className="relative" ref={clienteInputRef}>
+                  <input
+                    id="cliente"
+                    type="text"
+                    value={formData.cliente}
+                    onChange={handleClienteInputChange}
+                    onFocus={() => {
+                      setShowClienteDropdown(true);
+                      if (formData.cliente.trim()) {
+                        handleClienteInputChange({ target: { value: formData.cliente } } as React.ChangeEvent<HTMLInputElement>);
+                      } else {
+                        setFilteredClientes(clientes);
+                      }
+                    }}
+                    className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                      errors.cliente ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Digite ou selecione o cliente"
+                  />
+                  {/* Ícone de seta */}
+                  <div
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none"
+                  >
+                    <svg
+                      className={`w-5 h-5 text-gray-400 transition-transform ${
+                        showClienteDropdown ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Dropdown de opções */}
+                  {showClienteDropdown && filteredClientes.length > 0 && (
+                    <div
+                      ref={clienteDropdownRef}
+                      className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto"
+                      style={{ backgroundColor: '#ffffff' }}
+                    >
+                      {filteredClientes.map((cliente) => (
+                        <button
+                          key={cliente.id}
+                          type="button"
+                          onClick={() => handleSelectCliente(cliente.nome)}
+                          className="w-full px-4 py-2 text-left text-gray-800 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none transition-colors"
+                          style={{ backgroundColor: '#ffffff', color: '#1f2937' }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f3f4f6';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#ffffff';
+                          }}
+                        >
+                          {cliente.nome}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {errors.cliente && (
                   <p className="mt-1 text-sm text-red-600">{errors.cliente}</p>
                 )}
@@ -434,26 +643,75 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
 
               <div>
                 <label htmlFor="servico" className="block text-sm font-medium text-gray-700 mb-2">
-                  Serviço *
+                  Serviço (opcional)
                 </label>
-                <select
-                  id="servico"
-                  value={formData.servico}
-                  onChange={(e) => {
-                    setFormData({ ...formData, servico: e.target.value });
-                    setErrors({ ...errors, servico: '' });
-                  }}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.servico ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="">Selecione um serviço</option>
-                  {servicos.map((servico) => (
-                    <option key={servico.id} value={servico.nome}>
-                      {servico.nome}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative" ref={servicoInputRef}>
+                  <input
+                    id="servico"
+                    type="text"
+                    value={formData.servico}
+                    onChange={handleServicoInputChange}
+                    onFocus={() => {
+                      setShowServicoDropdown(true);
+                      if (formData.servico.trim()) {
+                        handleServicoInputChange({ target: { value: formData.servico } } as React.ChangeEvent<HTMLInputElement>);
+                      } else {
+                        setFilteredServicos(servicos);
+                      }
+                    }}
+                    className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                      errors.servico ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Digite ou selecione o serviço"
+                  />
+                  {/* Ícone de seta */}
+                  <div
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none"
+                  >
+                    <svg
+                      className={`w-5 h-5 text-gray-400 transition-transform ${
+                        showServicoDropdown ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Dropdown de opções */}
+                  {showServicoDropdown && filteredServicos.length > 0 && (
+                    <div
+                      ref={servicoDropdownRef}
+                      className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto"
+                      style={{ backgroundColor: '#ffffff' }}
+                    >
+                      {filteredServicos.map((servico) => (
+                        <button
+                          key={servico.id}
+                          type="button"
+                          onClick={() => handleSelectServico(servico.nome)}
+                          className="w-full px-4 py-2 text-left text-gray-800 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none transition-colors"
+                          style={{ backgroundColor: '#ffffff', color: '#1f2937' }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f3f4f6';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#ffffff';
+                          }}
+                        >
+                          {servico.nome}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {errors.servico && (
                   <p className="mt-1 text-sm text-red-600">{errors.servico}</p>
                 )}
@@ -512,17 +770,20 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                     id="estado_cabelo"
                     value={formData.estado_cabelo}
                     onChange={(e) => setFormData({ ...formData, estado_cabelo: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                      errors.estado_cabelo ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   >
-                    <option value="novo">Novo</option>
-                    <option value="descolorido">Descolorido</option>
-                    <option value="branco">Branco</option>
-                    <option value="preto">Preto</option>
-                    <option value="castanho">Castanho</option>
-                    <option value="rubro">Rubro</option>
-                    <option value="loiro">Loiro</option>
-                    <option value="pintado">Pintado</option>
+                    <option value="">Selecione um estado</option>
+                    {estadosCabelo.map((estado) => (
+                      <option key={estado.id} value={estado.valor}>
+                        {estado.nome}
+                      </option>
+                    ))}
                   </select>
+                  {errors.estado_cabelo && (
+                    <p className="mt-1 text-sm text-red-600">{errors.estado_cabelo}</p>
+                  )}
                 </div>
 
                 <div>
@@ -540,10 +801,12 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                       errors.tipo_cabelo ? 'border-red-500' : 'border-gray-300'
                     }`}
                   >
-                    <option value="liso">Liso</option>
-                    <option value="ondulado">Ondulado</option>
-                    <option value="cacheado">Cacheado</option>
-                    <option value="crespo">Crespo</option>
+                    <option value="">Selecione um tipo</option>
+                    {tiposCabelo.map((tipo) => (
+                      <option key={tipo.id} value={tipo.valor}>
+                        {tipo.nome}
+                      </option>
+                    ))}
                   </select>
                   {errors.tipo_cabelo && (
                     <p className="mt-1 text-sm text-red-600">{errors.tipo_cabelo}</p>
@@ -555,9 +818,8 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                 <label htmlFor="cor_cabelo" className="block text-sm font-medium text-gray-700 mb-2">
                   Cor do Cabelo *
                 </label>
-                <input
+                <select
                   id="cor_cabelo"
-                  type="text"
                   value={formData.cor_cabelo}
                   onChange={(e) => {
                     setFormData({ ...formData, cor_cabelo: e.target.value });
@@ -566,8 +828,14 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                     errors.cor_cabelo ? 'border-red-500' : 'border-gray-300'
                   }`}
-                  placeholder="Ex: Castanho, Preto, Loiro..."
-                />
+                >
+                  <option value="">Selecione uma cor</option>
+                  {coresCabelo.map((cor) => (
+                    <option key={cor.id} value={cor.nome}>
+                      {cor.nome}
+                    </option>
+                  ))}
+                </select>
                 {errors.cor_cabelo && (
                   <p className="mt-1 text-sm text-red-600">{errors.cor_cabelo}</p>
                 )}
@@ -625,9 +893,8 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                 <label htmlFor="cor_linha" className="block text-sm font-medium text-gray-700 mb-2">
                   Cor da Linha *
                 </label>
-                <input
+                <select
                   id="cor_linha"
-                  type="text"
                   value={formData.cor_linha}
                   onChange={(e) => {
                     setFormData({ ...formData, cor_linha: e.target.value });
@@ -636,8 +903,14 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                     errors.cor_linha ? 'border-red-500' : 'border-gray-300'
                   }`}
-                  placeholder="Ex: Preta, Branca, Vermelha..."
-                />
+                >
+                  <option value="">Selecione uma cor</option>
+                  {coresLinha.map((cor) => (
+                    <option key={cor.id} value={cor.nome}>
+                      {cor.nome}
+                    </option>
+                  ))}
+                </select>
                 {errors.cor_linha && (
                   <p className="mt-1 text-sm text-red-600">{errors.cor_linha}</p>
                 )}

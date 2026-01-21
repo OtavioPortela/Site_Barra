@@ -1,11 +1,11 @@
 from django.contrib import admin
-from .models import Cliente, OrdemServico, ItemOrdemServico, Servico
+from .models import Cliente, OrdemServico, ItemOrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
 
 
 @admin.register(Cliente)
 class ClienteAdmin(admin.ModelAdmin):
-    list_display = ['nome', 'cnpj_cpf', 'email', 'telefone', 'ativo', 'data_cadastro']
-    list_filter = ['ativo', 'data_cadastro']
+    list_display = ['nome', 'cnpj_cpf', 'email', 'telefone', 'eh_parceiro', 'ativo', 'data_cadastro']
+    list_filter = ['ativo', 'eh_parceiro', 'data_cadastro']
     search_fields = ['nome', 'cnpj_cpf', 'email']
     ordering = ['-data_cadastro']
 
@@ -49,4 +49,36 @@ class ItemOrdemServicoAdmin(admin.ModelAdmin):
     list_display = ['ordem_servico', 'descricao', 'quantidade', 'valor_unitario', 'valor_total']
     list_filter = ['ordem_servico']
     search_fields = ['descricao', 'ordem_servico__numero']
+
+
+@admin.register(EstadoCabelo)
+class EstadoCabeloAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'valor', 'ativo', 'ordem', 'data_criacao']
+    list_filter = ['ativo', 'data_criacao']
+    search_fields = ['nome', 'valor']
+    ordering = ['ordem', 'nome']
+
+
+@admin.register(TipoCabelo)
+class TipoCabeloAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'valor', 'ativo', 'ordem', 'data_criacao']
+    list_filter = ['ativo', 'data_criacao']
+    search_fields = ['nome', 'valor']
+    ordering = ['ordem', 'nome']
+
+
+@admin.register(CorCabelo)
+class CorCabeloAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'ativo', 'ordem', 'data_criacao']
+    list_filter = ['ativo', 'data_criacao']
+    search_fields = ['nome']
+    ordering = ['ordem', 'nome']
+
+
+@admin.register(CorLinha)
+class CorLinhaAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'ativo', 'ordem', 'data_criacao']
+    list_filter = ['ativo', 'data_criacao']
+    search_fields = ['nome']
+    ordering = ['ordem', 'nome']
 

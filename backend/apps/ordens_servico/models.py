@@ -6,11 +6,16 @@ from django.utils import timezone
 class Cliente(models.Model):
     """Modelo para armazenar informações dos clientes."""
     nome = models.CharField(max_length=200)
-    cnpj_cpf = models.CharField(max_length=18, unique=True)
+    cnpj_cpf = models.CharField(max_length=18, blank=True, null=True)
     email = models.EmailField(blank=True)
     telefone = models.CharField(max_length=20)
     endereco = models.TextField(blank=True)
     ativo = models.BooleanField(default=True)
+    eh_parceiro = models.BooleanField(
+        default=False,
+        verbose_name='É Parceiro',
+        help_text='Indica se o cliente tem vínculo de parceiro (pode deixar pendurado na conta)'
+    )
     data_cadastro = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -203,4 +208,70 @@ class ItemOrdemServico(models.Model):
         """Calcula valor_total automaticamente."""
         self.valor_total = self.quantidade * self.valor_unitario
         super().save(*args, **kwargs)
+
+
+class EstadoCabelo(models.Model):
+    """Modelo para armazenar opções de estado do cabelo."""
+    nome = models.CharField(max_length=50, unique=True)
+    valor = models.CharField(max_length=50, unique=True, help_text='Valor usado no banco (ex: novo, descolorido)')
+    ativo = models.BooleanField(default=True)
+    ordem = models.IntegerField(default=0, help_text='Ordem de exibição')
+    data_criacao = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Estado do Cabelo'
+        verbose_name_plural = 'Estados do Cabelo'
+        ordering = ['ordem', 'nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class TipoCabelo(models.Model):
+    """Modelo para armazenar opções de tipo de cabelo."""
+    nome = models.CharField(max_length=50, unique=True)
+    valor = models.CharField(max_length=50, unique=True, help_text='Valor usado no banco (ex: liso, ondulado)')
+    ativo = models.BooleanField(default=True)
+    ordem = models.IntegerField(default=0, help_text='Ordem de exibição')
+    data_criacao = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Tipo de Cabelo'
+        verbose_name_plural = 'Tipos de Cabelo'
+        ordering = ['ordem', 'nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class CorCabelo(models.Model):
+    """Modelo para armazenar opções de cor do cabelo."""
+    nome = models.CharField(max_length=50, unique=True)
+    ativo = models.BooleanField(default=True)
+    ordem = models.IntegerField(default=0, help_text='Ordem de exibição')
+    data_criacao = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Cor do Cabelo'
+        verbose_name_plural = 'Cores do Cabelo'
+        ordering = ['ordem', 'nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class CorLinha(models.Model):
+    """Modelo para armazenar opções de cor da linha."""
+    nome = models.CharField(max_length=50, unique=True)
+    ativo = models.BooleanField(default=True)
+    ordem = models.IntegerField(default=0, help_text='Ordem de exibição')
+    data_criacao = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Cor da Linha'
+        verbose_name_plural = 'Cores da Linha'
+        ordering = ['ordem', 'nome']
+
+    def __str__(self):
+        return self.nome
 

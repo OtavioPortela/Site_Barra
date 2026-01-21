@@ -3,6 +3,7 @@ export interface OrdemServico {
   numero: string;
   cliente: string;
   cliente_telefone?: string;
+  cliente_eh_parceiro?: boolean;
   descricao: string;
   status: 'pendente' | 'em_desenvolvimento' | 'finalizada';
   valor: number;
@@ -26,6 +27,22 @@ export interface OrdemServico {
   pago_na_entrega?: boolean;
   foto_entrega?: string;
   forma_pagamento?: 'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito';
+}
+
+export interface Cliente {
+  id: number;
+  nome: string;
+  cnpj_cpf?: string;
+  email?: string;
+  telefone: string;
+  endereco?: string;
+  ativo: boolean;
+  eh_parceiro?: boolean;
+  data_cadastro: string;
+}
+
+export interface Debito extends OrdemServico {
+  // Reutiliza campos de OrdemServico
 }
 
 export interface User {
