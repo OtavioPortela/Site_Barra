@@ -80,16 +80,49 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DATABASE_NAME', default='barra_confeccoes'),
-        'USER': config('DATABASE_USER', default='postgres'),
-        'PASSWORD': config('DATABASE_PASSWORD', default='postgres'),
-        'HOST': config('DATABASE_HOST', default='db'),
-        'PORT': config('DATABASE_PORT', default='5432'),
+# Railway fornece DATABASE_URL ou variáveis PG*
+# Priorizar DATABASE_URL se disponível (formato Railway)
+DATABASE_URL = config('DATABASE_URL', default=None)
+
+if DATABASE_URL:
+    # Railway ou outro provedor que fornece DATABASE_URL
+    import re
+    db_match = re.match(r'postgresql://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)', DATABASE_URL)
+    if db_match:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': db_match.group(5),
+                'USER': db_match.group(1),
+                'PASSWORD': db_match.group(2),
+                'HOST': db_match.group(3),
+                'PORT': db_match.group(4),
+            }
+        }
+    else:
+        # Fallback para formato alternativo
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': config('PGDATABASE', default=config('DATABASE_NAME', default='barra_confeccoes')),
+                'USER': config('PGUSER', default=config('DATABASE_USER', default='postgres')),
+                'PASSWORD': config('PGPASSWORD', default=config('DATABASE_PASSWORD', default='postgres')),
+                'HOST': config('PGHOST', default=config('DATABASE_HOST', default='db')),
+                'PORT': config('PGPORT', default=config('DATABASE_PORT', default='5432')),
+            }
+        }
+else:
+    # Modo local ou com variáveis individuais
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('PGDATABASE', default=config('DATABASE_NAME', default='barra_confeccoes')),
+            'USER': config('PGUSER', default=config('DATABASE_USER', default='postgres')),
+            'PASSWORD': config('PGPASSWORD', default=config('DATABASE_PASSWORD', default='postgres')),
+            'HOST': config('PGHOST', default=config('DATABASE_HOST', default='db')),
+            'PORT': config('PGPORT', default=config('DATABASE_PORT', default='5432')),
+        }
     }
-}
 
 
 # Custom User Model

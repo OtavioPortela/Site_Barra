@@ -5,9 +5,11 @@ set -e
 echo "Aguardando PostgreSQL..."
 
 # Aguardar até o PostgreSQL estar pronto
-# Usar variáveis de ambiente do Railway
-until nc -z ${DATABASE_HOST} ${DATABASE_PORT:-5432}; do
-  echo "PostgreSQL não está disponível ainda - aguardando..."
+# Usar variáveis de ambiente do Railway (priorizar PGHOST do Railway)
+DB_HOST=${PGHOST:-${DATABASE_HOST:-db}}
+DB_PORT=${PGPORT:-${DATABASE_PORT:-5432}}
+until nc -z ${DB_HOST} ${DB_PORT}; do
+  echo "PostgreSQL não está disponível ainda - aguardando... (${DB_HOST}:${DB_PORT})"
   sleep 1
 done
 
