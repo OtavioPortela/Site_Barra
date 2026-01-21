@@ -440,25 +440,25 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
 
         var ordemCriada = await ordemServicoService.create(formDataToSend);
       } else {
-        const createData: any = {
-          cliente: formData.cliente,
-          valor: parseFloat(formData.valor),
-          valor_metro: parseFloat(formData.valor_metro),
-          prazo_entrega: formData.prazo_entrega,
-          status: 'pendente',
+      const createData: any = {
+        cliente: formData.cliente,
+        valor: parseFloat(formData.valor),
+        valor_metro: parseFloat(formData.valor_metro),
+        prazo_entrega: formData.prazo_entrega,
+        status: 'pendente',
           pago_na_entrega: formData.pago_na_entrega,
-          // Campos de confecções
-          estado_cabelo: formData.estado_cabelo,
-          tipo_cabelo: formData.tipo_cabelo,
-          cor_cabelo: formData.cor_cabelo,
-          peso_gramas: parseInt(formData.peso_gramas),
-          tamanho_cabelo_cm: parseInt(formData.tamanho_cabelo_cm),
-          cor_linha: formData.cor_linha,
-          servico: formData.servico,
-        };
+        // Campos de confecções
+        estado_cabelo: formData.estado_cabelo,
+        tipo_cabelo: formData.tipo_cabelo,
+        cor_cabelo: formData.cor_cabelo,
+        peso_gramas: parseInt(formData.peso_gramas),
+        tamanho_cabelo_cm: parseInt(formData.tamanho_cabelo_cm),
+        cor_linha: formData.cor_linha,
+        servico: formData.servico,
+      };
 
-        if (formData.descricao) createData.descricao = formData.descricao;
-        if (formData.observacoes) createData.observacoes = formData.observacoes;
+      if (formData.descricao) createData.descricao = formData.descricao;
+      if (formData.observacoes) createData.observacoes = formData.observacoes;
 
         var ordemCriada = await ordemServicoService.create(createData);
       }
@@ -483,7 +483,7 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
           toast.success('Ordem de serviço criada com sucesso! (WhatsApp não enviado)');
         }
       } else {
-        toast.success('Ordem de serviço criada com sucesso!');
+      toast.success('Ordem de serviço criada com sucesso!');
       }
 
       setFormData({
@@ -570,10 +570,10 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                   </button>
                 </div>
                 <div className="relative" ref={clienteInputRef}>
-                  <input
-                    id="cliente"
-                    type="text"
-                    value={formData.cliente}
+                <input
+                  id="cliente"
+                  type="text"
+                  value={formData.cliente}
                     onChange={handleClienteInputChange}
                     onFocus={() => {
                       setShowClienteDropdown(true);
@@ -582,12 +582,12 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                       } else {
                         setFilteredClientes(clientes);
                       }
-                    }}
+                  }}
                     className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.cliente ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    errors.cliente ? 'border-red-500' : 'border-gray-300'
+                  }`}
                     placeholder="Digite ou selecione o cliente"
-                  />
+                />
                   {/* Ícone de seta */}
                   <div
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none"
@@ -632,7 +632,7 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                         >
                           {cliente.nome}
                         </button>
-                      ))}
+                  ))}
                     </div>
                   )}
                 </div>
@@ -647,9 +647,9 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                 </label>
                 <div className="relative" ref={servicoInputRef}>
                   <input
-                    id="servico"
+                  id="servico"
                     type="text"
-                    value={formData.servico}
+                  value={formData.servico}
                     onChange={handleServicoInputChange}
                     onFocus={() => {
                       setShowServicoDropdown(true);
@@ -658,10 +658,10 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                       } else {
                         setFilteredServicos(servicos);
                       }
-                    }}
+                  }}
                     className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.servico ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    errors.servico ? 'border-red-500' : 'border-gray-300'
+                  }`}
                     placeholder="Digite ou selecione o serviço"
                   />
                   {/* Ícone de seta */}
@@ -706,9 +706,9 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                             e.currentTarget.style.backgroundColor = '#ffffff';
                           }}
                         >
-                          {servico.nome}
+                      {servico.nome}
                         </button>
-                      ))}
+                  ))}
                     </div>
                   )}
                 </div>
