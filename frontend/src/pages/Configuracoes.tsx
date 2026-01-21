@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { estadoCabeloService, tipoCabeloService, corCabeloService, corLinhaService, servicoService } from '../services/api';
+import { corCabeloService, corLinhaService, estadoCabeloService, servicoService, tipoCabeloService } from '../services/api';
 
 interface EstadoCabelo {
   id: number;
