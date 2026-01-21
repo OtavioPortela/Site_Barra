@@ -2,18 +2,7 @@ import { useState, useEffect } from 'react';
 import { clienteService } from '../services/api';
 import { CreateClienteModal } from '../components/dashboard/CreateClienteModal';
 import toast from 'react-hot-toast';
-
-interface Cliente {
-  id: number;
-  nome: string;
-  cnpj_cpf: string;
-  email?: string;
-  telefone?: string;
-  endereco?: string;
-  ativo: boolean;
-  eh_parceiro?: boolean;
-  data_cadastro: string;
-}
+import type { Cliente } from '../types';
 
 export const Clientes = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -48,7 +37,7 @@ export const Clientes = () => {
 
   const filteredClientes = clientes.filter((cliente) =>
     cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cliente.cnpj_cpf.includes(searchTerm) ||
+    (cliente.cnpj_cpf && cliente.cnpj_cpf.includes(searchTerm)) ||
     (cliente.email && cliente.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -127,7 +116,7 @@ export const Clientes = () => {
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900">{cliente.nome}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{cliente.cnpj_cpf}</p>
+                      <p className="text-sm text-gray-500 mt-1">{cliente.cnpj_cpf || '-'}</p>
                     </div>
                     <span
                       className={`ml-2 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -203,7 +192,7 @@ export const Clientes = () => {
                       <div className="text-sm font-medium text-gray-900">{cliente.nome}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{cliente.cnpj_cpf}</div>
+                      <div className="text-sm text-gray-500">{cliente.cnpj_cpf || '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">{cliente.email || '-'}</div>

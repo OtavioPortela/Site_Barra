@@ -36,11 +36,10 @@ interface Servico {
   id: number;
   nome: string;
   descricao?: string;
-  ativo: boolean;
+  ativo?: boolean;
 }
 
 export const Configuracoes = () => {
-  const [loading, setLoading] = useState(false);
 
   // Estados para cada tipo de configuração
   const [estadosCabelo, setEstadosCabelo] = useState<EstadoCabelo[]>([]);
@@ -74,7 +73,8 @@ export const Configuracoes = () => {
       setTiposCabelo(tipos);
       setCoresCabelo(cores);
       setCoresLinha(linhas);
-      setServicos(servicosData);
+      // Mapear servicos para garantir que tenham a propriedade ativo
+      setServicos(servicosData.map(s => ({ ...s, ativo: s.ativo ?? true })));
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
     }
