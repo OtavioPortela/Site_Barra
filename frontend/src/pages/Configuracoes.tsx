@@ -74,7 +74,7 @@ export const Configuracoes = () => {
       setCoresCabelo(cores);
       setCoresLinha(linhas);
       // Mapear servicos para garantir que tenham a propriedade ativo
-      setServicos(servicosData.map(s => ({ ...s, ativo: s.ativo ?? true })));
+      setServicos(servicosData.map((s: any) => ({ ...s, ativo: s.ativo ?? true })));
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
     }
