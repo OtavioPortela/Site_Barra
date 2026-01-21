@@ -66,12 +66,12 @@ export const OSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar, onEmit
               ? `${ordem.servico.toString().trim()} - ${ordem.cliente}`
               : ordem.cliente}
           </h3>
-          <p className="text-xs text-gray-500 mt-1">OS #{ordem.numero}</p>
         </div>
         <span className={`px-2 py-1 text-xs font-medium rounded border ${getStatusColor(ordem.status)}`}>
           {ordem.status === 'pendente' ? 'Pendente' : ordem.status === 'em_desenvolvimento' ? 'Em Dev' : 'Finalizada'}
         </span>
       </div>
+      <p className="text-xs text-gray-400 mb-2">OS #{ordem.numero}</p>
 
       {ordem.descricao && (
         <p className="text-sm text-gray-700 mb-3 line-clamp-2">{ordem.descricao}</p>
