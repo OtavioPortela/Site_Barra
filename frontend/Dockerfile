@@ -18,9 +18,13 @@ RUN rm -rf node_modules/.vite .vite dist || true
 # Build da aplicação
 RUN npm run build
 
+# Copiar e dar permissão ao script de start
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 # Expor a porta (Railway injeta $PORT)
-EXPOSE $PORT
+EXPOSE 3000
 
 # Comando para servir os arquivos estáticos
-CMD npx serve -s dist -l $PORT
+CMD ["/app/start.sh"]
 
