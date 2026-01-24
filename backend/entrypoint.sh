@@ -74,7 +74,10 @@ echo "Iniciando servidor..."
 
 # Obter porta do Railway (padrão 8000)
 PORT_VALUE="${PORT:-8000}"
-echo "Usando porta: $PORT_VALUE"
+echo "=========================================="
+echo "PORT VARIABLE: ${PORT:-not set}"
+echo "USING PORT: $PORT_VALUE"
+echo "=========================================="
 
 # Se recebeu argumentos, usar eles, senão usar padrão
 if [ $# -gt 0 ]; then
