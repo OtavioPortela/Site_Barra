@@ -4,10 +4,34 @@ set -e
 
 echo "Aguardando PostgreSQL..."
 
+# Função para extrair host da DATABASE_URL
+extract_db_host() {
+    if [ -n "$DATABASE_URL" ]; then
+        # Extrair host da URL: postgres://user:pass@HOST:port/db
+        echo "$DATABASE_URL" | sed -n 's|.*@\([^:/]*\).*|\1|p'
+    else
+        echo "${PGHOST:-${DATABASE_HOST:-db}}"
+    fi
+}
+
+# Função para extrair porta da DATABASE_URL
+extract_db_port() {
+    if [ -n "$DATABASE_URL" ]; then
+        # Extrair porta da URL: postgres://user:pass@host:PORT/db
+        # Se não tiver porta explícita, assume 5432
+        port=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
+        echo "${port:-5432}"
+    else
+        echo "${PGPORT:-${DATABASE_PORT:-5432}}"
+    fi
+}
+
+DB_HOST=$(extract_db_host)
+DB_PORT=$(extract_db_port)
+
+echo "Tentando conectar ao banco em ${DB_HOST}:${DB_PORT}..."
+
 # Aguardar até o PostgreSQL estar pronto
-# Usar variáveis de ambiente do Railway (priorizar PGHOST do Railway)
-DB_HOST=${PGHOST:-${DATABASE_HOST:-db}}
-DB_PORT=${PGPORT:-${DATABASE_PORT:-5432}}
 until nc -z ${DB_HOST} ${DB_PORT}; do
   echo "PostgreSQL não está disponível ainda - aguardando... (${DB_HOST}:${DB_PORT})"
   sleep 1
@@ -64,4 +88,3 @@ else
     echo "Executando gunicorn padrão na porta $PORT_VALUE"
     exec gunicorn --bind 0.0.0.0:$PORT_VALUE --workers 3 core.wsgi:application
 fi
-
