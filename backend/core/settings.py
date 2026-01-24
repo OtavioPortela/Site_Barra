@@ -47,7 +47,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # CORS deve vir ANTES de CommonMiddleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -55,6 +55,16 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Desabilitar CSRF para rotas de API (usamos JWT, não precisamos de CSRF)
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'X-CSRFToken'
+# Excluir rotas de API do CSRF
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://gracious-spontaneity-production.up.railway.app,https://sitebarra-production.up.railway.app',
+    cast=Csv()
+)
 
 ROOT_URLCONF = 'core.urls'
 
@@ -284,6 +294,14 @@ CORS_ALLOW_HEADERS = [
 
 # Garantir que preflight requests sejam respondidos corretamente
 CORS_PREFLIGHT_MAX_AGE = 86400
+
+# Configuração adicional para garantir que CORS funcione
+CORS_ALLOW_PRIVATE_NETWORK = True  # Permitir requisições de rede privada
+
+# Debug CORS (remover em produção se necessário)
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+    print("DEBUG: CORS_ALLOW_ALL_ORIGINS forçado para True em modo DEBUG")
 
 # CSRF Configuration
 # Permitir origens confiáveis para CSRF (necessário para requisições cross-origin)
