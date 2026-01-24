@@ -243,10 +243,13 @@ NGROK_MODE = config('NGROK_MODE', default=False, cast=bool)
 
 # Permitir origens Railway (qualquer subdomínio .railway.app)
 # Isso facilita o deploy na Railway sem precisar configurar manualmente
+# IMPORTANTE: Defina RAILWAY_MODE=True nas variáveis de ambiente do Railway
+# para permitir requisições de qualquer domínio .railway.app
 RAILWAY_MODE = config('RAILWAY_MODE', default=True, cast=bool)
 
 if NGROK_MODE or RAILWAY_MODE:
     # Modo ngrok/Railway: permitir todas as origens (apenas para desenvolvimento/teste/produção Railway)
+    # Isso resolve problemas de CORS quando frontend e backend estão em domínios diferentes
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOWED_ORIGINS = []  # Não usado quando ALLOW_ALL_ORIGINS é True
 else:
