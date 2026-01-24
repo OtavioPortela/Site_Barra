@@ -86,5 +86,14 @@ if [ $# -gt 0 ]; then
 else
     # Sem argumentos, usar comando padrão
     echo "Executando gunicorn padrão na porta $PORT_VALUE"
-    exec gunicorn --bind 0.0.0.0:$PORT_VALUE --workers 3 core.wsgi:application
+    # Aumentar timeout e adicionar configurações para Railway
+    exec gunicorn \
+        --bind 0.0.0.0:$PORT_VALUE \
+        --workers 3 \
+        --timeout 120 \
+        --keep-alive 5 \
+        --access-logfile - \
+        --error-logfile - \
+        --log-level info \
+        core.wsgi:application
 fi
