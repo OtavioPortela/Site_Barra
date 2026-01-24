@@ -8,11 +8,6 @@ Ot@vio120695
 ---------------------------------------------------------------------------------------
 O que falta:
 
-Deixar responsivo
-botao de entregue
-mudar seletivos de criar os
-enviar imagem
-gerar nota para impressao
 
 
 codigo do twilo
@@ -32,7 +27,11 @@ PGHOST = postgres.railway.internal
 PGPORT = 5432
 PGDATABASE = railway
 PGUSER = postgres
-PGPASSWORD = LWsONwogoqBXrItzrQiebZgXELGRuUcE
+PGPASSWORD = AQGQBJxtaxDnHmtXPFCzMIUmOUldnsem
+
+novo banco:
+
+postgresql://postgres:AQGQBJxtaxDnHmtXPFCzMIUmOUldnsem@switchyard.proxy.rlwy.net:41049/railway
 
 
 ---------------------------------------------------------------------------------------------
