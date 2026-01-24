@@ -28,7 +28,7 @@ const server = http.createServer((req, res) => {
 
   // Remover query string e hash
   let filePath = req.url.split('?')[0].split('#')[0];
-  
+
   // Se for a raiz, servir index.html
   if (filePath === '/') {
     filePath = '/index.html';
