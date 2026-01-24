@@ -285,6 +285,26 @@ CORS_ALLOW_HEADERS = [
 # Garantir que preflight requests sejam respondidos corretamente
 CORS_PREFLIGHT_MAX_AGE = 86400
 
+# CSRF Configuration
+# Permitir origens confiáveis para CSRF (necessário para requisições cross-origin)
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://gracious-spontaneity-production.up.railway.app,https://sitebarra-production.up.railway.app',
+    cast=Csv()
+)
+
+# Configurações de segurança para produção (Railway)
+if not DEBUG:
+    # Railway usa proxy reverso, então precisamos confiar no header X-Forwarded-Proto
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    # Não forçar redirect HTTPS (Railway já faz isso)
+    SECURE_SSL_REDIRECT = False
+    # Cookies seguros
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # SameSite para cookies
+    SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SAMESITE = 'None'
 
 # Swagger/OpenAPI Documentation
 SWAGGER_SETTINGS = {
