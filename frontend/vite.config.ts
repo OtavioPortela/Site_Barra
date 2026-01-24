@@ -8,4 +8,18 @@ export default defineConfig({
     port: 3000,
     host: true,
   },
+  build: {
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true,
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
+  optimizeDeps: {
+    include: ['react-is'],
+  },
 })

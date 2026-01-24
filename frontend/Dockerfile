@@ -7,7 +7,7 @@ COPY package*.json ./
 
 # Limpar completamente e instalar dependências
 RUN rm -rf node_modules .vite dist && \
-    npm install --legacy-peer-deps --prefer-offline --no-audit
+    npm install --prefer-offline --no-audit
 
 # Copiar todo o código fonte
 COPY . .
