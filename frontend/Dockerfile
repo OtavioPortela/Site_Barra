@@ -18,7 +18,8 @@ RUN rm -rf node_modules/.vite .vite dist || true
 # Build da aplicação
 RUN npm run build
 
-# Copiar e dar permissão ao script de start
+# Copiar script de servidor e script de start
+COPY server.js /app/server.js
 COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
