@@ -15,6 +15,10 @@ COPY . .
 # Limpar cache do Vite antes do build
 RUN rm -rf node_modules/.vite .vite dist || true
 
+# Argumento de build para a URL da API
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
 # Build da aplicação
 RUN npm run build
 
