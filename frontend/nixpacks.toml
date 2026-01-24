@@ -2,11 +2,16 @@
 nixPkgs = ["nodejs-22_x"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = [
+  "rm -rf node_modules package-lock.json || true",
+  "npm install --legacy-peer-deps --prefer-offline --no-audit"
+]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = [
+  "rm -rf dist .vite node_modules/.vite || true",
+  "npm run build"
+]
 
 [start]
 cmd = "npx serve -s dist -l $PORT"
-
