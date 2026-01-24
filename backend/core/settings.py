@@ -252,9 +252,12 @@ if NGROK_MODE or RAILWAY_MODE:
     # Isso resolve problemas de CORS quando frontend e backend estão em domínios diferentes
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOWED_ORIGINS = []  # Não usado quando ALLOW_ALL_ORIGINS é True
+    # Debug: log para verificar se está ativo
+    print(f"CORS: RAILWAY_MODE={RAILWAY_MODE}, NGROK_MODE={NGROK_MODE}, ALLOW_ALL_ORIGINS=True")
 else:
     CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS_LIST
+    print(f"CORS: ALLOW_ALL_ORIGINS=False, ALLOWED_ORIGINS={CORS_ALLOWED_ORIGINS}")
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -278,6 +281,9 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
+
+# Garantir que preflight requests sejam respondidos corretamente
+CORS_PREFLIGHT_MAX_AGE = 86400
 
 
 # Swagger/OpenAPI Documentation
