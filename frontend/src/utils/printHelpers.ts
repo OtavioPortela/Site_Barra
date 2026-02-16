@@ -1,0 +1,156 @@
+import type { OrdemServico } from '../types';
+
+export const getFormaPagamentoLabel = (forma?: string | null): string => {
+  const labels: Record<string, string> = {
+    dinheiro: 'Dinheiro',
+    pix: 'PIX',
+    cartao_credito: 'Cartão de Crédito',
+    cartao_debito: 'Cartão de Débito',
+  };
+  return forma ? labels[forma] || forma : 'A definir';
+};
+
+const getEstadoCabeloLabel = (estado: string) => {
+  const labels: Record<string, string> = {
+    novo: 'Novo',
+    descolorido: 'Descolorido',
+    branco: 'Branco',
+    preto: 'Preto',
+    castanho: 'Castanho',
+    rubro: 'Rubro',
+    loiro: 'Loiro',
+    pintado: 'Pintado',
+  };
+  return labels[estado] || estado;
+};
+
+const getTipoCabeloLabel = (tipo: string) => {
+  const labels: Record<string, string> = {
+    liso: 'Liso',
+    ondulado: 'Ondulado',
+    cacheado: 'Cacheado',
+    crespo: 'Crespo',
+  };
+  return labels[tipo] || tipo;
+};
+
+export const formatarNotaTermica = (ordem: OrdemServico, formaPagamentoOverride?: string): string => {
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  // const formatTime = (dateString: string) => {
+  //   const date = new Date(dateString);
+  //   return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  // };
+
+  // Dados básicos
+  const dataCriacao = ordem.data_criacao ? formatDate(ordem.data_criacao) : '-';
+  const prazoEntrega = ordem.prazo_entrega ? formatDate(ordem.prazo_entrega) : '-';
+  const statusLabel = {
+    pendente: 'Pendente',
+    em_desenvolvimento: 'Em Desenvolvimento',
+    finalizada: 'Finalizada',
+  }[ordem.status] || ordem.status;
+
+  const valorTotal = formatCurrency(ordem.valor);
+
+  // Dados da empresa
+  const razaoSocial = 'BARRA CONFECCOES LTDA';
+  const nomeFantasia = 'BARRA CONFECCOES';
+  const cnpj = '59.220.325/0001-22';
+
+  // Construir detalhes do cabelo
+  let detalhesCabelo = '';
+  if (ordem.estado_cabelo) detalhesCabelo += `- Estado: ${getEstadoCabeloLabel(ordem.estado_cabelo)}\n`;
+  if (ordem.tipo_cabelo) detalhesCabelo += `- Tipo: ${getTipoCabeloLabel(ordem.tipo_cabelo)}\n`;
+  if (ordem.cor_cabelo) detalhesCabelo += `- Cor: ${ordem.cor_cabelo}\n`;
+  if (ordem.peso_gramas) detalhesCabelo += `- Peso: ${ordem.peso_gramas}g\n`;
+  if (ordem.tamanho_cabelo_cm) detalhesCabelo += `- Tamanho: ${ordem.tamanho_cabelo_cm}cm\n`;
+  if (ordem.cor_linha) detalhesCabelo += `- Linha: ${ordem.cor_linha}\n`;
+
+  // Se tiver detalhes, adicionar cabeçalho antes
+  if (detalhesCabelo) {
+    detalhesCabelo = `\nDetalhes do Cabelo:\n${detalhesCabelo}`;
+  }
+
+  return `${'='.repeat(48)}
+          ${razaoSocial}
+          ${nomeFantasia}
+CNPJ: ${cnpj}
+${'='.repeat(48)}
+        ORDEM DE SERVICO - OS
+${'='.repeat(48)}
+Numero: ${ordem.numero}
+Data de Criacao: ${dataCriacao}
+Prazo de Entrega: ${prazoEntrega}
+Status: ${statusLabel}
+${'='.repeat(48)}
+           DADOS DO CLIENTE
+${'='.repeat(48)}
+Cliente: ${ordem.cliente || 'CONSUMIDOR NÃO IDENTIFICADO'}
+${'='.repeat(48)}
+          DETALHES DO SERVICO
+${'='.repeat(48)}
+Servico: ${ordem.servico || '-'}
+${detalhesCabelo}
+${'='.repeat(48)}
+            VALORES
+${'='.repeat(48)}
+VALOR TOTAL: R$ ${valorTotal}
+${'='.repeat(48)}
+       INFORMACOES ADICIONAIS
+${'='.repeat(48)}
+Criado por: ${ordem.usuario_criacao_nome || '-'}
+${'='.repeat(48)}
+           Obrigado pela preferencia!
+${'='.repeat(48)}`;
+};
+
+export const imprimirNota = (ordem: OrdemServico, formaPagamentoOverride?: string) => {
+    const textoNota = formatarNotaTermica(ordem, formaPagamentoOverride);
+
+    const janelaImpressao = window.open('', '_blank');
+    if (janelaImpressao) {
+      const htmlNota = textoNota.replace(/\n/g, '<br>');
+
+      janelaImpressao.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Ordem de Serviço - ${ordem.numero}</title>
+          <meta charset="UTF-8">
+          <style>
+            @media print {
+              @page { size: 80mm auto; margin: 0; }
+              body { margin: 0; padding: 3mm; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.2; text-align: left; font-weight: bold; }
+            }
+            body { margin: 0; padding: 3mm; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.2; white-space: pre-wrap; max-width: 80mm; text-align: left; font-weight: bold; }
+            .nota { white-space: pre-wrap; word-wrap: break-word; }
+            .centered { text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="nota">${htmlNota}</div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                setTimeout(function() { window.close(); }, 100);
+              }, 250);
+            };
+          </script>
+        </body>
+        </html>
+      `);
+      janelaImpressao.document.close();
+    }
+};
