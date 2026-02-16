@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ordemServicoService } from '../../services/api';
 import { formatCurrency, formatDate } from '../../utils/helpers';
+import { imprimirNota } from '../../utils/printHelpers';
 
 interface OSDetailsModalProps {
   isOpen: boolean;
@@ -279,6 +280,16 @@ export const OSDetailsModal = ({ isOpen, onClose, ordemId }: OSDetailsModalProps
         </div>
 
         <div className="flex-shrink-0 flex justify-end space-x-4 pt-4 px-6 pb-6 border-t border-gray-200 bg-white">
+          <button
+            type="button"
+            onClick={() => ordem && imprimirNota(ordem)}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clipRule="evenodd" />
+            </svg>
+            Imprimir
+          </button>
           <button
             type="button"
             onClick={onClose}

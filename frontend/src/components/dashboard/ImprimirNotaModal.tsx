@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ordemServicoService } from '../../services/api';
 import type { OrdemServico } from '../../types';
+import { formatarNotaTermica, getFormaPagamentoLabel, imprimirNota } from '../../utils/printHelpers';
 
 interface ImprimirNotaModalProps {
   isOpen: boolean;
@@ -12,91 +13,8 @@ interface ImprimirNotaModalProps {
   apenasVisualizar?: boolean; // Se true, apenas mostra a nota (sem opção de imprimir)
 }
 
-const getFormaPagamentoLabel = (forma?: string | null): string => {
-  const labels: Record<string, string> = {
-    dinheiro: 'Dinheiro',
-    pix: 'PIX',
-    cartao_credito: 'Cartão de Crédito',
-    cartao_debito: 'Cartão de Débito',
-  };
-  return forma ? labels[forma] || forma : 'A definir';
-};
+  // Funções formatarNotaTermica e getFormaPagamentoLabel foram movidas para printHelpers
 
-const formatarNotaTermica = (ordem: OrdemServico): string => {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const dataEmissao = ordem.data_criacao ? formatDate(ordem.data_criacao) : new Date().toLocaleDateString('pt-BR');
-  const horaEmissao = ordem.data_criacao ? formatTime(ordem.data_criacao) : new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  const valorTotal = formatCurrency(ordem.valor);
-  const valorUnitario = ordem.valor_metro ? formatCurrency(ordem.valor_metro) : valorTotal;
-
-  // Dados da empresa
-  const razaoSocial = 'BARRA CONFECCOES LTDA';
-  const nomeFantasia = 'BARRA CONFECCOES';
-  const cnpj = '59.220.325/0001-22';
-  // const endereco = 'ENDEREÇO DA EMPRESA'; // Você pode adicionar o endereço real aqui
-  // const telefone = '(00) 0000-0000'; // Você pode adicionar o telefone real aqui
-
-  // Gerar número fictício da NFC-e (normalmente vem do sistema fiscal)
-  const numeroNF = ordem.numero.replace('OS-', '').padStart(9, '0');
-  const serieNF = '1';
-  const codigoVerificacao = Math.random().toString(36).substring(2, 10).toUpperCase();
-
-  return `${'='.repeat(48)}
-          ${razaoSocial}
-          ${nomeFantasia}
-CNPJ: ${cnpj}
-${'='.repeat(48)}
-           NFC-e - MODELO 65
-     NOTA FISCAL DE CONSUMIDOR
-          ELETRONICA
-${'='.repeat(48)}
-Numero: ${numeroNF}  Serie: ${serieNF}
-${dataEmissao} ${horaEmissao}
-Codigo de Verificacao:
-${codigoVerificacao}
-${'='.repeat(48)}
-           DADOS DO CONSUMIDOR
-${'='.repeat(48)}
-Consumidor: ${ordem.cliente || 'CONSUMIDOR NÃO IDENTIFICADO'}
-${'='.repeat(48)}
-                PRODUTOS
-${'='.repeat(48)}
-${ordem.servico || 'SERVIÇO'}
-Qtd: 1.00    Unit: R$ ${valorUnitario}
-Total: R$ ${valorTotal}
-${'='.repeat(48)}
-            RESUMO DA VENDA
-${'='.repeat(48)}
-Qtde. total de itens: 1
-VALOR TOTAL R$ ${valorTotal}
-${'='.repeat(48)}
-            FORMA DE PAGAMENTO
-${'='.repeat(48)}
-${getFormaPagamentoLabel(ordem.forma_pagamento || (ordem.pago_na_entrega ? 'dinheiro' : null))}
-Valor pago: R$ ${valorTotal}
-${'='.repeat(48)}
-     Consulte pela Chave de Acesso
-     em www.nfce.fazenda.gov.br
-${'='.repeat(48)}
-           Obrigado pela preferencia!
-${'='.repeat(48)}`;
-};
 
 export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, apenasImprimir = false, apenasVisualizar = false }: ImprimirNotaModalProps) => {
   const [loading, setLoading] = useState(false);
@@ -160,71 +78,8 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
       ...ordemParaNota,
       forma_pagamento: formaPagamento || ordemParaNota.forma_pagamento
     };
-    const textoNota = formatarNotaTermica(ordemParaImprimir);
 
-    // Criar uma nova janela para impressão
-    const janelaImpressao = window.open('', '_blank');
-    if (janelaImpressao) {
-      // Converter quebras de linha para HTML (NFC-e não usa asteriscos)
-      let htmlNota = textoNota.replace(/\n/g, '<br>');
-
-      janelaImpressao.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Nota Fiscal - OS ${ordem.numero}</title>
-          <meta charset="UTF-8">
-          <style>
-            @media print {
-              @page {
-                size: 80mm auto;
-                margin: 0;
-              }
-              body {
-                margin: 0;
-                padding: 3mm;
-                font-family: 'Courier New', monospace;
-                font-size: 10px;
-                line-height: 1.2;
-                text-align: center;
-              }
-            }
-            body {
-              margin: 0;
-              padding: 3mm;
-              font-family: 'Courier New', monospace;
-              font-size: 10px;
-              line-height: 1.2;
-              white-space: pre-wrap;
-              max-width: 80mm;
-              text-align: center;
-            }
-            .nota {
-              white-space: pre-wrap;
-              word-wrap: break-word;
-            }
-            strong {
-              font-weight: bold;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="nota">${htmlNota}</div>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-                setTimeout(function() {
-                  window.close();
-                }, 100);
-              }, 250);
-            };
-          </script>
-        </body>
-        </html>
-      `);
-      janelaImpressao.document.close();
-    }
+    imprimirNota(ordemParaImprimir);
   };
 
   const handleCopiarTexto = async () => {
@@ -267,9 +122,16 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
         // Se for parceiro e marcar adicionar à conta, enviar undefined (null no backend)
         // Caso contrário, enviar forma de pagamento selecionada
         const formaPagamentoToSave = (ehParceiro && adicionarAConta)
-          ? undefined
+          ? null
           : (formaPagamento || undefined);
         await ordemServicoService.update(ordemParaNota.id, { forma_pagamento: formaPagamentoToSave });
+
+        // Se for adicionar à conta, não faturar (apenas atualiza o status de pagamento para nulo)
+        if (ehParceiro && adicionarAConta) {
+          alert('Adicionado à conta do parceiro com sucesso!');
+          onClose();
+          return;
+        }
 
         // Atualizar ordemParaNota para usar a forma de pagamento atualizada
         const ordemAtualizada = await ordemServicoService.getById(ordemParaNota.id);
