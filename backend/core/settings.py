@@ -336,10 +336,11 @@ SWAGGER_SETTINGS = {
     'USE_SESSION_AUTH': False,
 }
 
-# Twilio WhatsApp API Config
-TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID', default=None)
-TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN', default=None)
-TWILIO_WHATSAPP_FROM = config('TWILIO_WHATSAPP_FROM', default=None)
+# Z-API WhatsApp Config
+# Documentação: https://developer.z-api.io
+ZAPI_INSTANCE_ID = config('ZAPI_INSTANCE_ID', default=None)
+ZAPI_TOKEN = config('ZAPI_TOKEN', default=None)
+ZAPI_CLIENT_TOKEN = config('ZAPI_CLIENT_TOKEN', default=None)  # Security token (opcional mas recomendado)
 
 # Sentry — Monitoramento de erros em produção
 SENTRY_DSN = config('SENTRY_DSN', default=None)

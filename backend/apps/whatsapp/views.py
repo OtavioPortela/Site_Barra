@@ -8,11 +8,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def status_instancia(request):
+    """Verifica se a instância Z-API está conectada."""
+    try:
+        service = WhatsAppService()
+        resultado = service.verificar_status()
+        return Response({'connected': True, 'detalhes': resultado})
+    except ValueError as e:
+        return Response({'connected': False, 'error': str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    except Exception as e:
+        logger.error(f"Erro ao verificar status Z-API: {e}")
+        return Response({'connected': False, 'error': str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def enviar_mensagem(request):
     """
-    Envia mensagem de texto via WhatsApp (Twilio)
+    Envia mensagem de texto via WhatsApp (Z-API)
     Body: {
         "numero": "31999999999",
         "mensagem": "Olá, teste!"
