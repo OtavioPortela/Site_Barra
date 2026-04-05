@@ -125,6 +125,12 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
                 cliente = Cliente.objects.filter(nome=cliente_str, ativo=True).first()
                 attrs['cliente'] = cliente
 
+        # Garante que cliente é sempre obrigatório
+        if not attrs.get('cliente') and self.instance is None:
+            raise serializers.ValidationError({
+                'cliente': 'Cliente é obrigatório.'
+            })
+
         # Se serviço foi enviado como string (nome), buscar pelo nome ou criar se não existir
         servico_str = self.initial_data.get('servico')
         if servico_str and isinstance(servico_str, str) and servico_str.strip() and not attrs.get('servico'):

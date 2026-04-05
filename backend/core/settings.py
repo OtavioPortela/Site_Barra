@@ -341,3 +341,31 @@ TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID', default=None)
 TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN', default=None)
 TWILIO_WHATSAPP_FROM = config('TWILIO_WHATSAPP_FROM', default=None)
 
+# Sentry — Monitoramento de erros em produção
+SENTRY_DSN = config('SENTRY_DSN', default=None)
+
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+    import logging
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(
+                transaction_style='url',
+                middleware_spans=True,
+                signals_spans=False,
+            ),
+            LoggingIntegration(
+                level=logging.WARNING,       # Captura WARNING e acima como breadcrumbs
+                event_level=logging.ERROR,   # Envia ao Sentry apenas ERROR e acima
+            ),
+        ],
+        traces_sample_rate=0.2,   # 20% das requests monitoradas para performance
+        send_default_pii=False,   # Não envia dados pessoais (LGPD)
+        environment='production' if not DEBUG else 'development',
+        release=config('RAILWAY_GIT_COMMIT_SHA', default='local'),
+    )
+

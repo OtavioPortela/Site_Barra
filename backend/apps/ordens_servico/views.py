@@ -8,6 +8,9 @@ from django.utils import timezone
 from django.db.models import Q
 from datetime import datetime, timedelta
 from django.http import HttpResponse
+import logging
+
+logger = logging.getLogger(__name__)
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from .models import Cliente, OrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
@@ -93,15 +96,15 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             try:
                 data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
                 queryset = queryset.filter(data_criacao__date__gte=data_inicio)
-            except ValueError:
-                pass
+            except ValueError as e:
+                logger.warning(f"data_inicio inválida ignorada: '{data_inicio}' — {e}")
 
         if data_fim:
             try:
                 data_fim = datetime.strptime(data_fim, '%Y-%m-%d').date()
                 queryset = queryset.filter(data_criacao__date__lte=data_fim)
-            except ValueError:
-                pass
+            except ValueError as e:
+                logger.warning(f"data_fim inválida ignorada: '{data_fim}' — {e}")
 
         return queryset
 
@@ -195,7 +198,9 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='desfaturar', permission_classes=[IsAuthenticated])
     def desfaturar(self, request, pk=None):
         """Endpoint para desfaturar uma OS (devolver ao dashboard) - apenas patrão."""
-        ordem_servico = self.get_object()
+        # Busca direta ignorando o filtro de faturada=False do get_queryset
+        from django.shortcuts import get_object_or_404
+        ordem_servico = get_object_or_404(OrdemServico, pk=pk)
 
         # Verificar se é patrão
         if not request.user.is_staff:
@@ -244,15 +249,15 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             try:
                 data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
                 queryset = queryset.filter(data_criacao__date__gte=data_inicio)
-            except ValueError:
-                pass
+            except ValueError as e:
+                logger.warning(f"data_inicio inválida ignorada no export: '{data_inicio}' — {e}")
 
         if data_fim:
             try:
                 data_fim = datetime.strptime(data_fim, '%Y-%m-%d').date()
                 queryset = queryset.filter(data_criacao__date__lte=data_fim)
-            except ValueError:
-                pass
+            except ValueError as e:
+                logger.warning(f"data_fim inválida ignorada no export: '{data_fim}' — {e}")
 
         # Criar workbook
         wb = Workbook()

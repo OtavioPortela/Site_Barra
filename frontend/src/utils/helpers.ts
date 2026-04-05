@@ -6,15 +6,15 @@ export const formatCurrency = (value: number): string => {
 };
 
 export const formatDate = (dateString: string): string => {
-  // Suporta tanto formato ISO completo quanto YYYY-MM-DD
+  // Formato YYYY-MM-DD: converte direto sem aplicar timezone para evitar bug de offset
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    const [ano, mes, dia] = dateString.split('-');
+    return `${dia}/${mes}/${ano}`;
+  }
+  // ISO com hora: aplica formatação no timezone local
   const date = new Date(dateString);
   if (isNaN(date.getTime())) {
-    // Se não conseguir parsear, tenta formato YYYY-MM-DD
-    const parts = dateString.split('-');
-    if (parts.length === 3) {
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
-    return dateString; // Retorna como está se não conseguir formatar
+    return dateString;
   }
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',

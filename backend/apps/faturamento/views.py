@@ -8,6 +8,9 @@ from datetime import datetime, timedelta, date
 from apps.ordens_servico.models import OrdemServico
 from apps.ordens_servico.serializers import OrdemServicoListSerializer
 from apps.ordens_servico.permissions import IsStaffOnly
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @api_view(['GET'])
@@ -25,27 +28,25 @@ def dashboard_view(request):
 
     if data_inicio:
         try:
-            # Aceita tanto formato ISO quanto YYYY-MM-DD
             if 'T' in data_inicio:
                 data_inicio_dt = datetime.fromisoformat(data_inicio.replace('Z', '+00:00'))
                 data_inicio = data_inicio_dt.date()
             else:
                 data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
             os_finalizadas = os_finalizadas.filter(data_finalizacao__date__gte=data_inicio)
-        except (ValueError, AttributeError):
-            pass
+        except (ValueError, AttributeError) as e:
+            logger.warning(f"data_inicio inválida ignorada: '{request.query_params.get('data_inicio')}' — {e}")
 
     if data_fim:
         try:
-            # Aceita tanto formato ISO quanto YYYY-MM-DD
             if 'T' in data_fim:
                 data_fim_dt = datetime.fromisoformat(data_fim.replace('Z', '+00:00'))
                 data_fim = data_fim_dt.date()
             else:
                 data_fim = datetime.strptime(data_fim, '%Y-%m-%d').date()
             os_finalizadas = os_finalizadas.filter(data_finalizacao__date__lte=data_fim)
-        except (ValueError, AttributeError):
-            pass
+        except (ValueError, AttributeError) as e:
+            logger.warning(f"data_fim inválida ignorada: '{request.query_params.get('data_fim')}' — {e}")
 
     if cliente_param:
         # Filtrar por nome do cliente (string)
