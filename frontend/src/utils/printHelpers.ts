@@ -34,7 +34,7 @@ const getTipoCabeloLabel = (tipo: string) => {
   return labels[tipo] || tipo;
 };
 
-export const formatarNotaTermica = (ordem: OrdemServico, formaPagamentoOverride?: string): string => {
+export const formatarNotaTermica = (ordem: OrdemServico, _formaPagamentoOverride?: string): string => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       minimumFractionDigits: 2,

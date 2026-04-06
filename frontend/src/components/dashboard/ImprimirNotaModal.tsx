@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ordemServicoService } from '../../services/api';
 import type { OrdemServico } from '../../types';
-import { formatarNotaTermica, getFormaPagamentoLabel, imprimirNota } from '../../utils/printHelpers';
+import { formatarNotaTermica, imprimirNota } from '../../utils/printHelpers';
 
 interface ImprimirNotaModalProps {
   isOpen: boolean;
@@ -122,7 +122,7 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
         // Se for parceiro e marcar adicionar à conta, enviar undefined (null no backend)
         // Caso contrário, enviar forma de pagamento selecionada
         const formaPagamentoToSave = (ehParceiro && adicionarAConta)
-          ? null
+          ? undefined
           : (formaPagamento || undefined);
         await ordemServicoService.update(ordemParaNota.id, { forma_pagamento: formaPagamentoToSave });
 

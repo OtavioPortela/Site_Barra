@@ -6,7 +6,7 @@ import { formatCurrency, formatDate } from '../utils/helpers';
 import { useAuth } from '../contexts/AuthContext';
 
 export const HistoricoOS = () => {
-  const { isAdmin } = useAuth();
+  const { isPatrao } = useAuth();
   const [ordens, setOrdens] = useState<OrdemServico[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -269,7 +269,7 @@ export const HistoricoOS = () => {
                   <span className="text-xs text-gray-500">{formatDate(ordem.data_criacao)}</span>
                 </div>
 
-                {isAdmin() && (
+                {isPatrao() && (
                   <div className="mt-3 pt-3 border-t border-gray-100">
                     <button
                       onClick={() => handleDelete(ordem)}
@@ -348,7 +348,7 @@ export const HistoricoOS = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Valor
                 </th>
-                {isAdmin() && (
+                {isPatrao() && (
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Ações
                   </th>
@@ -407,7 +407,7 @@ export const HistoricoOS = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-primary-600">
                     {formatCurrency(ordem.valor)}
                   </td>
-                  {isAdmin() && (
+                  {isPatrao() && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button
                         onClick={() => handleDelete(ordem)}
