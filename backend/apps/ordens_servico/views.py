@@ -110,7 +110,19 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Define o usuário de criação ao criar uma OS."""
-        serializer.save(usuario_criacao=self.request.user)
+        numero = serializer.validated_data.get('numero')
+        if not numero:
+            ultima_os = OrdemServico.objects.order_by('-id').first()
+            if ultima_os and ultima_os.numero:
+                try:
+                    ultimo_num = int(ultima_os.numero.split('-')[-1])
+                    novo_num = ultimo_num + 1
+                except (ValueError, IndexError):
+                    novo_num = OrdemServico.objects.count() + 1
+            else:
+                novo_num = 1
+            numero = f"OS-{novo_num:04d}"
+        serializer.save(usuario_criacao=self.request.user, numero=numero)
 
     @action(detail=False, methods=['get'], url_path='gerar-numero')
     def gerar_numero(self, request):

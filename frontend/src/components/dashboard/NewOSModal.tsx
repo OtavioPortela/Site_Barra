@@ -418,10 +418,14 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
 
     setLoading(true);
     try {
+      const clienteId = clienteSelecionado?.id;
+      const servicoSelecionado = servicos.find(s => s.nome === formData.servico);
+      const servicoId = servicoSelecionado?.id;
+
       // Se tiver foto, usar FormData, senão usar JSON normal
       if (fotoFile) {
         const formDataToSend = new FormData();
-        formDataToSend.append('cliente', formData.cliente);
+        if (clienteId) formDataToSend.append('cliente_id', String(clienteId));
         formDataToSend.append('valor', formData.valor);
         formDataToSend.append('valor_metro', formData.valor_metro);
         formDataToSend.append('prazo_entrega', formData.prazo_entrega);
@@ -433,32 +437,31 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
         formDataToSend.append('peso_gramas', formData.peso_gramas);
         formDataToSend.append('tamanho_cabelo_cm', formData.tamanho_cabelo_cm);
         formDataToSend.append('cor_linha', formData.cor_linha);
-        formDataToSend.append('servico', formData.servico);
+        if (servicoId) formDataToSend.append('servico_id', String(servicoId));
         if (formData.descricao) formDataToSend.append('descricao', formData.descricao);
         if (formData.observacoes) formDataToSend.append('observacoes', formData.observacoes);
         formDataToSend.append('foto_entrega', fotoFile);
 
         var ordemCriada = await ordemServicoService.create(formDataToSend);
       } else {
-      const createData: any = {
-        cliente: formData.cliente,
-        valor: parseFloat(formData.valor),
-        valor_metro: parseFloat(formData.valor_metro),
-        prazo_entrega: formData.prazo_entrega,
-        status: 'pendente',
+        const createData: any = {
+          cliente_id: clienteId,
+          valor: parseFloat(formData.valor),
+          valor_metro: parseFloat(formData.valor_metro),
+          prazo_entrega: formData.prazo_entrega,
+          status: 'pendente',
           pago_na_entrega: formData.pago_na_entrega,
-        // Campos de confecções
-        estado_cabelo: formData.estado_cabelo,
-        tipo_cabelo: formData.tipo_cabelo,
-        cor_cabelo: formData.cor_cabelo,
-        peso_gramas: parseInt(formData.peso_gramas),
-        tamanho_cabelo_cm: parseInt(formData.tamanho_cabelo_cm),
-        cor_linha: formData.cor_linha,
-        servico: formData.servico,
-      };
+          estado_cabelo: formData.estado_cabelo,
+          tipo_cabelo: formData.tipo_cabelo,
+          cor_cabelo: formData.cor_cabelo,
+          peso_gramas: parseInt(formData.peso_gramas),
+          tamanho_cabelo_cm: parseInt(formData.tamanho_cabelo_cm),
+          cor_linha: formData.cor_linha,
+          servico_id: servicoId,
+        };
 
-      if (formData.descricao) createData.descricao = formData.descricao;
-      if (formData.observacoes) createData.observacoes = formData.observacoes;
+        if (formData.descricao) createData.descricao = formData.descricao;
+        if (formData.observacoes) createData.observacoes = formData.observacoes;
 
         var ordemCriada = await ordemServicoService.create(createData);
       }
