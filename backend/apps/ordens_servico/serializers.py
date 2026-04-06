@@ -68,6 +68,8 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
     faturada = serializers.BooleanField(read_only=True)
     itens = ItemOrdemServicoSerializer(many=True, read_only=True, required=False)
     numero = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    estado_cabelo = serializers.CharField(required=False, allow_blank=True)
+    tipo_cabelo = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = OrdemServico
