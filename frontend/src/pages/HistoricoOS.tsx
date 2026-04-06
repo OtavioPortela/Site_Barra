@@ -3,8 +3,10 @@ import toast from 'react-hot-toast';
 import { ordemServicoService } from '../services/api';
 import type { OrdemServico } from '../types';
 import { formatCurrency, formatDate } from '../utils/helpers';
+import { useAuth } from '../contexts/AuthContext';
 
 export const HistoricoOS = () => {
+  const { isAdmin } = useAuth();
   const [ordens, setOrdens] = useState<OrdemServico[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -101,6 +103,17 @@ export const HistoricoOS = () => {
     } catch (error: any) {
       toast.error('Erro ao exportar Excel');
       console.error(error);
+    }
+  };
+
+  const handleDelete = async (ordem: OrdemServico) => {
+    if (!window.confirm(`Excluir OS #${ordem.numero} (${ordem.cliente})? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await ordemServicoService.delete(ordem.id);
+      toast.success(`OS #${ordem.numero} excluída com sucesso`);
+      setOrdens(prev => prev.filter(o => o.id !== ordem.id));
+    } catch (error: any) {
+      toast.error('Erro ao excluir ordem de serviço');
     }
   };
 
@@ -256,6 +269,16 @@ export const HistoricoOS = () => {
                   <span className="text-xs text-gray-500">{formatDate(ordem.data_criacao)}</span>
                 </div>
 
+                {isAdmin() && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <button
+                      onClick={() => handleDelete(ordem)}
+                      className="w-full py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      Excluir OS
+                    </button>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-gray-100">
                   <div className="flex items-center space-x-1">
                     <span className="text-xs text-gray-500">Faturada:</span>
@@ -325,6 +348,11 @@ export const HistoricoOS = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Valor
                 </th>
+                {isAdmin() && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ações
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -379,6 +407,16 @@ export const HistoricoOS = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-primary-600">
                     {formatCurrency(ordem.valor)}
                   </td>
+                  {isAdmin() && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <button
+                        onClick={() => handleDelete(ordem)}
+                        className="text-red-600 hover:text-red-800 font-medium transition-colors"
+                      >
+                        Excluir
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

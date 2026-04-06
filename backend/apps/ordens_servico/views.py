@@ -124,6 +124,15 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             numero = f"OS-{novo_num:04d}"
         serializer.save(usuario_criacao=self.request.user, numero=numero)
 
+    def destroy(self, request, *args, **kwargs):
+        """Exclusão de OS restrita a administradores."""
+        if not request.user.is_staff:
+            return Response(
+                {'error': 'Apenas administradores podem excluir ordens de serviço.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
+
     @action(detail=False, methods=['get'], url_path='gerar-numero')
     def gerar_numero(self, request):
         """Endpoint para gerar o próximo número de OS."""
