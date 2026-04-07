@@ -547,8 +547,10 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
 
   if (!isOpen) return null;
 
-  // Data mínima: hoje
-  const today = new Date().toISOString().split('T')[0];
+  // Data/hora mínima: agora (formato datetime-local: YYYY-MM-DDTHH:MM)
+  const now = new Date();
+  now.setSeconds(0, 0);
+  const today = now.toISOString().slice(0, 16);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -753,7 +755,7 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                 </label>
                 <input
                   id="prazo_entrega"
-                  type="date"
+                  type="datetime-local"
                   min={today}
                   value={formData.prazo_entrega}
                   onChange={(e) => {

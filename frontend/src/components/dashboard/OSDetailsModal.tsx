@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ordemServicoService, estadoCabeloService, tipoCabeloService, corCabeloService, corLinhaService } from '../../services/api';
-import { formatCurrency, formatDate } from '../../utils/helpers';
+import { formatCurrency, formatDate, formatDateTime } from '../../utils/helpers';
 import { imprimirNota } from '../../utils/printHelpers';
 import * as apiModule from '../../services/api';
 const servicoService = (apiModule as any).servicoService;
@@ -214,9 +214,9 @@ export const OSDetailsModal = ({ isOpen, onClose, ordemId, onUpdated }: OSDetail
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Prazo de Entrega</label>
                     {isEditing ? (
-                      <input type="date" value={editData.prazo_entrega} onChange={e => set('prazo_entrega', e.target.value)} className={inputClass} />
+                      <input type="datetime-local" value={editData.prazo_entrega?.slice(0, 16)} onChange={e => set('prazo_entrega', e.target.value)} className={inputClass} />
                     ) : (
-                      <p className="text-sm text-gray-900">{formatDate(ordem.prazo_entrega)}</p>
+                      <p className="text-sm text-gray-900">{formatDateTime(ordem.prazo_entrega)}</p>
                     )}
                   </div>
                   {ordem.data_finalizacao && (

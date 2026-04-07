@@ -110,7 +110,7 @@ class OrdemServico(models.Model):
         help_text='Valor em reais por metro'
     )
     data_criacao = models.DateTimeField(auto_now_add=True)
-    prazo_entrega = models.DateField()
+    prazo_entrega = models.DateTimeField()
     data_finalizacao = models.DateTimeField(null=True, blank=True)
     faturada = models.BooleanField(default=False, verbose_name='Faturada')
     data_faturamento = models.DateTimeField(null=True, blank=True, verbose_name='Data de Faturamento')

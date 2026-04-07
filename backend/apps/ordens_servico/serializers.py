@@ -62,7 +62,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
     servico_nome = serializers.CharField(source='servico.nome', read_only=True)
     usuario_criacao_nome = serializers.CharField(source='usuario_criacao.nome_completo', read_only=True)
     data_criacao = DateTimeFieldISO(read_only=True)
-    prazo_entrega = serializers.DateField()
+    prazo_entrega = DateTimeFieldISO()
     data_finalizacao = DateTimeFieldISO(read_only=True, allow_null=True)
     data_faturamento = DateTimeFieldISO(read_only=True, allow_null=True)
     faturada = serializers.BooleanField(read_only=True)
@@ -168,7 +168,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
 
     def validate_prazo_entrega(self, value):
         """Valida que o prazo não seja no passado."""
-        if value < date.today():
+        if value < timezone.now():
             raise serializers.ValidationError("O prazo de entrega não pode ser no passado.")
         return value
 
@@ -205,7 +205,7 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
     cliente_eh_parceiro = serializers.BooleanField(source='cliente.eh_parceiro', read_only=True)
     servico = serializers.CharField(source='servico.nome', read_only=True)
     data_criacao = DateTimeFieldISO(read_only=True)
-    prazo_entrega = serializers.DateField()
+    prazo_entrega = DateTimeFieldISO()
     data_finalizacao = DateTimeFieldISO(read_only=True, allow_null=True)
     faturada = serializers.BooleanField(read_only=True)
 

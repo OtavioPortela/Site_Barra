@@ -324,7 +324,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             ws.cell(row=row_num, column=13, value=float(ordem.valor_metro) if ordem.valor_metro else 0)
             ws.cell(row=row_num, column=14, value=float(ordem.valor) if ordem.valor else 0)
             ws.cell(row=row_num, column=15, value=ordem.data_criacao.strftime('%d/%m/%Y %H:%M') if ordem.data_criacao else '')
-            ws.cell(row=row_num, column=16, value=ordem.prazo_entrega.strftime('%d/%m/%Y') if ordem.prazo_entrega else '')
+            ws.cell(row=row_num, column=16, value=ordem.prazo_entrega.strftime('%d/%m/%Y %H:%M') if ordem.prazo_entrega else '')
             ws.cell(row=row_num, column=17, value=ordem.data_finalizacao.strftime('%d/%m/%Y %H:%M') if ordem.data_finalizacao else '')
             ws.cell(row=row_num, column=18, value=ordem.data_faturamento.strftime('%d/%m/%Y %H:%M') if ordem.data_faturamento else '')
             ws.cell(row=row_num, column=19, value=ordem.observacoes or '')

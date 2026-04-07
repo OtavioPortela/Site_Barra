@@ -1,25 +1,31 @@
 import { useAuth } from '../../contexts/AuthContext';
 import type { OrdemServico } from '../../types';
-import { formatCurrency, formatDate, getStatusColor } from '../../utils/helpers';
+import { formatCurrency, formatDate, formatDateTime, getStatusColor } from '../../utils/helpers';
 
 function getPrazoInfo(prazoEntrega: string, status: OrdemServico['status']) {
   if (status === 'finalizada') return null;
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const prazo = new Date(prazoEntrega + 'T00:00:00');
-  const diffMs = prazo.getTime() - hoje.getTime();
-  const diffDias = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  const agora = new Date();
+  const prazo = new Date(prazoEntrega);
+  const diffMs = prazo.getTime() - agora.getTime();
+  const diffMin = Math.round(diffMs / (1000 * 60));
+  const diffH = Math.floor(Math.abs(diffMin) / 60);
+  const diffM = Math.abs(diffMin) % 60;
 
-  if (diffDias < 0) {
-    return { label: `Atrasado ${Math.abs(diffDias)}d`, border: 'border-red-500', badge: 'bg-red-100 text-red-700' };
+  if (diffMin < 0) {
+    const label = diffH > 0 ? `Atrasado ${diffH}h${diffM > 0 ? ` ${diffM}min` : ''}` : `Atrasado ${diffM}min`;
+    return { label, border: 'border-red-500', badge: 'bg-red-100 text-red-700' };
   }
-  if (diffDias === 0) {
-    return { label: 'Vence hoje', border: 'border-red-400', badge: 'bg-red-100 text-red-700' };
+  if (diffMin < 60) {
+    return { label: `${diffMin}min restantes`, border: 'border-red-400', badge: 'bg-red-100 text-red-700' };
   }
-  if (diffDias <= 3) {
-    return { label: `${diffDias}d restante${diffDias > 1 ? 's' : ''}`, border: 'border-yellow-400', badge: 'bg-yellow-100 text-yellow-700' };
+  if (diffH <= 6) {
+    const label = `${diffH}h${diffM > 0 ? ` ${diffM}min` : ''} restantes`;
+    return { label, border: 'border-yellow-400', badge: 'bg-yellow-100 text-yellow-700' };
   }
-  return { label: `${diffDias}d restantes`, border: 'border-green-400', badge: 'bg-green-100 text-green-700' };
+  const dias = Math.floor(diffH / 24);
+  const hRest = diffH % 24;
+  const label = dias > 0 ? `${dias}d ${hRest > 0 ? `${hRest}h` : ''}`.trim() + ' restantes' : `${diffH}h restantes`;
+  return { label, border: 'border-green-400', badge: 'bg-green-100 text-green-700' };
 }
 
 interface OSCardProps {
@@ -109,7 +115,7 @@ export const OSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar, onEmit
           <span className="font-medium">Criação:</span> {formatDate(ordem.data_criacao)}
         </div>
         <div>
-          <span className="font-medium">Prazo:</span> {formatDate(ordem.prazo_entrega)}
+          <span className="font-medium">Prazo:</span> {formatDateTime(ordem.prazo_entrega)}
         </div>
       </div>
 
