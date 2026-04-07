@@ -342,61 +342,25 @@ def formatar_nota_whatsapp(ordem_servico):
 
     # Montar mensagem
     mensagem = f"""*Barra Confecções*
-
 Ordem de Serviço
 
 Data: {data_criacao}
-
 Data de Entrega: {prazo_entrega}
 
+*Cliente:* {ordem_servico.cliente.nome if ordem_servico.cliente else '-'}
+*Telefone:* {telefone_cliente}
 
+*Estado do cabelo:* {get_estado_cabelo_label(ordem_servico.estado_cabelo)}
+*Tipo de Cabelo:* {get_tipo_cabelo_label(ordem_servico.tipo_cabelo)}
+*Cor do Cabelo:* {ordem_servico.cor_cabelo or '-'}
+*Peso:* {ordem_servico.peso_gramas or 0} gramas
+*Tamanho:* {ordem_servico.tamanho_cabelo_cm or 0} cm
+*Cor da linha:* {ordem_servico.cor_linha or '-'}
+*Serviço:* {ordem_servico.servico.nome if ordem_servico.servico else '-'}
+*Valor por metro:* R$ {valor_metro}
 
-*Nome do Cliente: {ordem_servico.cliente.nome if ordem_servico.cliente else '-'}
+*Observação:* {ordem_servico.observacoes or '(O cliente está ciente da perda de 20% na quantidade e 7 cm no comprimento.)'}
 
-*Telefone do Cliente:* {telefone_cliente}
-
-
-
-*Estado do cabelo*: {get_estado_cabelo_label(ordem_servico.estado_cabelo)}
-
-
-
-*Tipo de Cabelo*: {get_tipo_cabelo_label(ordem_servico.tipo_cabelo)}
-
-
-
-*Cor do Cabelo*: {ordem_servico.cor_cabelo or '-'}
-
-
-
-*Peso (em gramas)*: {ordem_servico.peso_gramas or 0} gramas
-
-
-
-*Tamanho do Cabelo*: {ordem_servico.tamanho_cabelo_cm or 0} cm
-
-
-
-*Cor da linha: {ordem_servico.cor_linha or '-'}
-
-
-
-Serviço: {ordem_servico.servico.nome if ordem_servico.servico else '-'}
-
-
-
-*Valor:* {valor_metro} Reais o metro
-
-
-
-*Observação* :
-
-
-
-{ordem_servico.observacoes or '(O cliente está ciente da perda de 20% na quantidade e 7 cm no comprimento.)'}
-
-Limpeza e mesclagem poderão perder até 40% da quantidade
-
-(qualquer metragem inferior a 1 metro, será cobrado ao valor do metro)"""
+_Limpeza e mesclagem poderão perder até 40% da quantidade. Qualquer metragem inferior a 1 metro será cobrada ao valor do metro._"""
 
     return mensagem

@@ -219,6 +219,23 @@ export const clienteService = {
     const response = await api.post('/clientes/', data);
     return response.data;
   },
+
+  update: async (id: number, data: Partial<{
+    nome: string;
+    cnpj_cpf: string;
+    email: string;
+    telefone: string;
+    endereco: string;
+    eh_parceiro: boolean;
+    ativo: boolean;
+  }>) => {
+    const response = await api.patch(`/clientes/${id}/`, data);
+    return response.data;
+  },
+
+  delete: async (id: number) => {
+    await api.delete(`/clientes/${id}/`);
+  },
 };
 
 export const servicoService = {

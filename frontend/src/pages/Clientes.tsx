@@ -8,6 +8,7 @@ export const Clientes = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [clienteToEdit, setClienteToEdit] = useState<Cliente | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -30,9 +31,19 @@ export const Clientes = () => {
     }
   };
 
-  const handleClienteCreated = (clienteNome: string) => {
-    toast.success(`Cliente "${clienteNome}" criado com sucesso!`);
+  const handleClienteCreated = () => {
     loadClientes();
+  };
+
+  const handleDelete = async (cliente: Cliente) => {
+    if (!window.confirm(`Excluir o cliente "${cliente.nome}"? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await clienteService.delete(cliente.id);
+      toast.success(`Cliente "${cliente.nome}" excluído.`);
+      setClientes(prev => prev.filter(c => c.id !== cliente.id));
+    } catch {
+      toast.error('Erro ao excluir cliente');
+    }
   };
 
   const filteredClientes = clientes.filter((cliente) =>
@@ -129,7 +140,15 @@ export const Clientes = () => {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-2 mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                    <button onClick={() => setClienteToEdit(cliente)} className="flex-1 py-1.5 text-sm font-medium text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors">
+                      Editar
+                    </button>
+                    <button onClick={() => handleDelete(cliente)} className="flex-1 py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors">
+                      Excluir
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 mt-2">
                     {cliente.email && (
                       <div className="flex items-center space-x-2">
                         <span className="text-xs text-gray-500">Email:</span>
@@ -183,6 +202,9 @@ export const Clientes = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ações
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -213,15 +235,17 @@ export const Clientes = () => {
                         )}
                       </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          cliente.ativo
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${cliente.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                         {cliente.ativo ? 'Ativo' : 'Inativo'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
+                      <button onClick={() => setClienteToEdit(cliente)} className="text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                        Editar
+                      </button>
+                      <button onClick={() => handleDelete(cliente)} className="text-red-600 hover:text-red-800 font-medium transition-colors">
+                        Excluir
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -305,9 +329,10 @@ export const Clientes = () => {
       )}
 
       <CreateClienteModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        isOpen={showCreateModal || !!clienteToEdit}
+        onClose={() => { setShowCreateModal(false); setClienteToEdit(null); }}
         onSuccess={handleClienteCreated}
+        clienteToEdit={clienteToEdit}
       />
     </div>
   );
