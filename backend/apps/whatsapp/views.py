@@ -226,35 +226,27 @@ def enviar_os_criada(request):
         # Se tiver foto e URL for pública, tentar enviar imagem
         com_imagem = False
         if ordem_servico.foto_entrega:
-            # Construir URL completa da imagem
-            http_request = request._request if hasattr(request, '_request') else None
-            if http_request:
-                url_imagem = http_request.build_absolute_uri(ordem_servico.foto_entrega.url)
+            import os as _os
+            media_path = ordem_servico.foto_entrega.url
+            railway_domain = _os.environ.get('RAILWAY_PUBLIC_DOMAIN', '')
+            if railway_domain:
+                url_imagem = f"https://{railway_domain}{media_path}"
             else:
-                protocol = 'https' if request.is_secure() else 'http'
-                host = request.get_host()
-                media_url = ordem_servico.foto_entrega.url
-                if not media_url.startswith('/'):
-                    media_url = '/' + media_url
-                url_imagem = f"{protocol}://{host}{media_url}"
+                url_imagem = request.build_absolute_uri(media_path)
 
-            # Verificar se a URL é acessível publicamente (não localhost)
-            # Twilio não consegue acessar localhost, então enviar apenas texto
-            if 'localhost' in url_imagem or '127.0.0.1' in url_imagem or not url_imagem.startswith('https://'):
+            eh_publica = 'localhost' not in url_imagem and '127.0.0.1' not in url_imagem and url_imagem.startswith('https://')
+
+            if not eh_publica:
                 logger.info(f"Imagem em URL não pública ({url_imagem}), enviando apenas texto")
                 resultado = service.enviar_texto(numero, mensagem)
-                com_imagem = False
             else:
                 try:
-                    logger.info(f"Enviando OS criada com imagem: {url_imagem}")
+                    logger.info(f"Enviando OS com imagem: {url_imagem}")
                     resultado = service.enviar_imagem(numero, url_imagem, mensagem)
-                    logger.info(f"OS criada enviada com imagem. SID: {resultado.get('sid')}")
                     com_imagem = True
                 except Exception as img_error:
-                    # Se falhar ao enviar imagem, tentar enviar apenas texto
-                    logger.warning(f"Erro ao enviar imagem, enviando apenas texto: {img_error}")
+                    logger.warning(f"Falha ao enviar imagem, enviando texto: {img_error}")
                     resultado = service.enviar_texto(numero, mensagem)
-                    com_imagem = False
         else:
             # Enviar apenas texto
             resultado = service.enviar_texto(numero, mensagem)
