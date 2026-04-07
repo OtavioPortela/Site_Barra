@@ -1,6 +1,6 @@
 # Backlog — Abril 2026
 
-> Criado em: 2026-04-07
+> Criado em: 2026-04-07 | Última atualização: 2026-04-07
 > Legenda: ✅ Feito | 🔄 Em andamento | ❌ Pendente
 
 ---
@@ -18,16 +18,16 @@
 
 ## PRIORIDADE 2 — Edição de OS e Clientes
 
-- [ ] ❌ **OSDetailsModal editável** — ao abrir detalhes da OS, habilitar edição dos campos (cliente, serviço, valores, prazo, status, foto); botão "Salvar" chama `PATCH /api/ordens-servico/{id}/`
-- [ ] ❌ **Editar cliente** — botão "Editar" na listagem de clientes abre modal com os dados preenchidos para atualização
-- [ ] ❌ **Excluir cliente** — botão "Excluir" (soft delete, marca `ativo=False`) com confirmação antes de remover
+- [ ] 🔄 **OSDetailsModal editável** — ao abrir detalhes da OS, habilitar edição dos campos (cliente, serviço, valores, prazo, status, foto); botão "Salvar" chama `PATCH /api/ordens-servico/{id}/`
+- [x] ✅ **Editar cliente** — botão "Editar" na listagem de clientes abre modal com os dados preenchidos para atualização
+- [x] ✅ **Excluir cliente** — botão "Excluir" com confirmação antes de remover
 
 ---
 
 ## PRIORIDADE 3 — WhatsApp
 
 - [ ] ❌ **Envio de foto via WhatsApp** — ao criar OS com foto, o backend está caindo no path de "URL não pública" e enviando só texto; precisa gerar URL pública do Railway e chamar `enviar_imagem` corretamente
-- [ ] ❌ **Espaçamento excessivo na mensagem** — `formatar_nota_whatsapp` em `whatsapp/views.py` tem linhas em branco duplas/triplas entre campos; reduzir para espaçamento simples
+- [x] ✅ **Espaçamento excessivo na mensagem** — mensagem compactada, formatação ajustada
 
 ---
 
@@ -50,8 +50,8 @@
 | Prioridade | Área | Total | Feitos | Pendentes |
 |---|---|---|---|---|
 | P1 | Kanban / Temporizador | 3 | 0 | 3 |
-| P2 | Edição OS e Clientes | 3 | 0 | 3 |
-| P3 | WhatsApp | 2 | 0 | 2 |
+| P2 | Edição OS e Clientes | 3 | 1 | 2 |
+| P3 | WhatsApp | 2 | 1 | 1 |
 | P4 | Exportação | 2 | 0 | 2 |
 | P5 | Faturamento / Saídas | 2 | 0 | 2 |
-| **Total** | | **12** | **0** | **12** |
+| **Total** | | **12** | **3** | **9** |

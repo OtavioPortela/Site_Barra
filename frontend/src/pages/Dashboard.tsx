@@ -42,6 +42,7 @@ export const Dashboard = () => {
           setSelectedOSId(null);
         }}
         ordemId={selectedOSId}
+        onUpdated={() => setRefreshKey(prev => prev + 1)}
       />
     </div>
   );
