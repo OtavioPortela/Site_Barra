@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { LoginCredentials, OrdemServico, BillingData, Debito, Cliente } from '../types';
+import type { LoginCredentials, OrdemServico, BillingData, Debito, Cliente, SaidaCaixa } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -189,6 +189,33 @@ export const billingService = {
   }): Promise<BillingData> => {
     const response = await api.get('/faturamento/', { params: filters });
     return response.data;
+  },
+};
+
+export const saidaCaixaService = {
+  getAll: async (filters?: {
+    data_inicio?: string;
+    data_fim?: string;
+    categoria?: string;
+  }): Promise<SaidaCaixa[]> => {
+    const response = await api.get('/faturamento/saidas-caixa/', { params: filters });
+    const data = response.data;
+    return Array.isArray(data) ? data : (data.results || []);
+  },
+
+  create: async (data: {
+    descricao: string;
+    valor: number;
+    categoria: string;
+    data: string;
+    observacoes?: string;
+  }): Promise<SaidaCaixa> => {
+    const response = await api.post('/faturamento/saidas-caixa/', data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/faturamento/saidas-caixa/${id}/`);
   },
 };
 

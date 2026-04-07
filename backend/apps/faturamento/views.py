@@ -1,13 +1,16 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
+from rest_framework import serializers as drf_serializers, status, viewsets
+from rest_framework.viewsets import ModelViewSet
 from django.db.models import Sum, Count, Q, Avg
 from django.utils import timezone
 from datetime import datetime, timedelta, date
 from apps.ordens_servico.models import OrdemServico
 from apps.ordens_servico.serializers import OrdemServicoListSerializer
 from apps.ordens_servico.permissions import IsStaffOnly
+from .models import SaidaCaixa
+from .serializers import SaidaCaixaSerializer
 import logging
 
 logger = logging.getLogger(__name__)
@@ -132,6 +135,17 @@ def dashboard_view(request):
     ordens_finalizadas = os_finalizadas.order_by('-data_finalizacao')[:50]
     serializer = OrdemServicoListSerializer(ordens_finalizadas, many=True)
 
+    # Saídas de caixa
+    saidas_qs = SaidaCaixa.objects.all()
+    if data_inicio:
+        saidas_qs = saidas_qs.filter(data__gte=data_inicio)
+    if data_fim:
+        saidas_qs = saidas_qs.filter(data__lte=data_fim)
+    total_saidas = saidas_qs.aggregate(Sum('valor'))['valor__sum'] or 0
+
+    saidas_mensal = SaidaCaixa.objects.filter(data__gte=timezone.now().date() - timedelta(days=30))
+    total_saidas_mensal = saidas_mensal.aggregate(Sum('valor'))['valor__sum'] or 0
+
     return Response({
         'faturamento_total': float(faturamento_total),
         'faturamento_mensal': float(faturamento_mensal),
@@ -141,7 +155,11 @@ def dashboard_view(request):
         'faturamento_por_periodo': faturamento_por_periodo,
         'distribuicao_status': distribuicao_status,
         'top_clientes': top_clientes_list,
-        'ordens_finalizadas': serializer.data
+        'ordens_finalizadas': serializer.data,
+        'total_saidas': float(total_saidas),
+        'total_saidas_mensal': float(total_saidas_mensal),
+        'lucro_liquido': float(faturamento_total) - float(total_saidas),
+        'lucro_liquido_mensal': float(faturamento_mensal) - float(total_saidas_mensal),
     })
 
 
@@ -217,4 +235,23 @@ def relatorio_view(request):
     """Endpoint para relatório completo."""
     # Similar ao dashboard, mas com mais detalhes
     return dashboard_view(request)
+
+
+class SaidaCaixaViewSet(ModelViewSet):
+    serializer_class = SaidaCaixaSerializer
+    permission_classes = [IsAuthenticated, IsStaffOnly]
+    queryset = SaidaCaixa.objects.all()
+
+    def get_queryset(self):
+        qs = SaidaCaixa.objects.all()
+        data_inicio = self.request.query_params.get('data_inicio')
+        data_fim = self.request.query_params.get('data_fim')
+        categoria = self.request.query_params.get('categoria')
+        if data_inicio:
+            qs = qs.filter(data__gte=data_inicio)
+        if data_fim:
+            qs = qs.filter(data__lte=data_fim)
+        if categoria:
+            qs = qs.filter(categoria=categoria)
+        return qs
 

@@ -60,12 +60,26 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface SaidaCaixa {
+  id: number;
+  descricao: string;
+  valor: number;
+  categoria: string;
+  data: string;
+  observacoes: string;
+  data_criacao: string;
+}
+
 export interface BillingData {
   faturamento_total: number;
   faturamento_mensal: number;
   faturamento_semanal: number;
   quantidade_finalizadas: number;
   ticket_medio: number;
+  total_saidas: number;
+  total_saidas_mensal: number;
+  lucro_liquido: number;
+  lucro_liquido_mensal: number;
   faturamento_por_periodo: Array<{
     periodo: string;
     valor: number;
