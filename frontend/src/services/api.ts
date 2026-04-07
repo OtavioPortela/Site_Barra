@@ -402,6 +402,21 @@ export const debitoService = {
       forma_pagamento: formaPagamento,
     });
   },
+
+  reverterPagamento: async (debitoId: number): Promise<void> => {
+    await api.patch(`/debitos/${debitoId}/reverter-pagamento/`);
+  },
+};
+
+export const configuracaoEmpresaService = {
+  get: async (): Promise<{ nome: string; cnpj: string; email: string; telefone: string; endereco: string }> => {
+    const response = await api.get('/faturamento/configuracao-empresa/');
+    return response.data;
+  },
+  update: async (data: Partial<{ nome: string; cnpj: string; email: string; telefone: string; endereco: string }>) => {
+    const response = await api.patch('/faturamento/configuracao-empresa/', data);
+    return response.data;
+  },
 };
 
 export default api;

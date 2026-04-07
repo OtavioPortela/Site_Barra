@@ -176,8 +176,8 @@ def enviar_nota_os(request):
                 import json
                 error_data = json.loads(e.response.text)
                 error_msg = error_data.get('message', error_data.get('error', error_msg))
-            except:
-                pass
+            except Exception as parse_err:
+                logger.warning(f"Não foi possível parsear resposta de erro: {parse_err}")
         return Response(
             {'error': error_msg},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -274,8 +274,8 @@ def enviar_os_criada(request):
                 import json
                 error_data = json.loads(e.response.text)
                 error_msg = error_data.get('message', error_data.get('error', error_msg))
-            except:
-                pass
+            except Exception as parse_err:
+                logger.warning(f"Não foi possível parsear resposta de erro: {parse_err}")
         return Response(
             {'error': error_msg},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR

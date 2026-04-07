@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { corCabeloService, corLinhaService, estadoCabeloService, servicoService, tipoCabeloService } from '../services/api';
+import { corCabeloService, corLinhaService, estadoCabeloService, servicoService, tipoCabeloService, configuracaoEmpresaService } from '../services/api';
 
 interface EstadoCabelo {
   id: number;
@@ -40,6 +40,8 @@ interface Servico {
 }
 
 export const Configuracoes = () => {
+  const [empresa, setEmpresa] = useState({ nome: '', cnpj: '', email: '', telefone: '', endereco: '' });
+  const [savingEmpresa, setSavingEmpresa] = useState(false);
 
   // Estados para cada tipo de configuração
   const [estadosCabelo, setEstadosCabelo] = useState<EstadoCabelo[]>([]);
@@ -58,7 +60,20 @@ export const Configuracoes = () => {
   // Carregar dados ao montar
   useEffect(() => {
     loadData();
+    configuracaoEmpresaService.get().then(setEmpresa).catch(() => {});
   }, []);
+
+  const handleSaveEmpresa = async () => {
+    try {
+      setSavingEmpresa(true);
+      await configuracaoEmpresaService.update(empresa);
+      toast.success('Configurações da empresa salvas!');
+    } catch {
+      toast.error('Erro ao salvar configurações da empresa');
+    } finally {
+      setSavingEmpresa(false);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -258,45 +273,62 @@ export const Configuracoes = () => {
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Informações Gerais</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nome da Empresa
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nome da Empresa</label>
                 <input
                   type="text"
+                  value={empresa.nome}
+                  onChange={e => setEmpresa(p => ({ ...p, nome: e.target.value }))}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Barra Confecções"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  CNPJ
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">CNPJ</label>
                 <input
                   type="text"
+                  value={empresa.cnpj}
+                  onChange={e => setEmpresa(p => ({ ...p, cnpj: e.target.value }))}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="00.000.000/0000-00"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                 <input
                   type="email"
+                  value={empresa.email}
+                  onChange={e => setEmpresa(p => ({ ...p, email: e.target.value }))}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="contato@barraconfeccoes.com"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Telefone
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Telefone</label>
                 <input
                   type="tel"
+                  value={empresa.telefone}
+                  onChange={e => setEmpresa(p => ({ ...p, telefone: e.target.value }))}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="(00) 0000-0000"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Endereço</label>
+                <input
+                  type="text"
+                  value={empresa.endereco}
+                  onChange={e => setEmpresa(p => ({ ...p, endereco: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Rua, número, bairro, cidade"
+                />
+              </div>
+              <button
+                onClick={handleSaveEmpresa}
+                disabled={savingEmpresa}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+              >
+                {savingEmpresa ? 'Salvando...' : 'Salvar Informações'}
+              </button>
             </div>
           </div>
 

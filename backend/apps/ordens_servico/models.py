@@ -177,38 +177,6 @@ class Servico(models.Model):
         return self.nome
 
 
-class ItemOrdemServico(models.Model):
-    """Modelo opcional para itens de uma ordem de serviço."""
-    ordem_servico = models.ForeignKey(
-        OrdemServico,
-        related_name='itens',
-        on_delete=models.CASCADE
-    )
-    descricao = models.CharField(max_length=200)
-    quantidade = models.IntegerField(validators=[MinValueValidator(1)])
-    valor_unitario = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(0)]
-    )
-    valor_total = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(0)]
-    )
-
-    class Meta:
-        verbose_name = 'Item de Ordem de Serviço'
-        verbose_name_plural = 'Itens de Ordens de Serviço'
-
-    def __str__(self):
-        return f"{self.descricao} - OS {self.ordem_servico.numero}"
-
-    def save(self, *args, **kwargs):
-        """Calcula valor_total automaticamente."""
-        self.valor_total = self.quantidade * self.valor_unitario
-        super().save(*args, **kwargs)
-
 
 class EstadoCabelo(models.Model):
     """Modelo para armazenar opções de estado do cabelo."""

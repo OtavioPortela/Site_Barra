@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Cliente, OrdemServico, ItemOrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
+from .models import Cliente, OrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
 
 
 @admin.register(Cliente)
@@ -43,12 +43,6 @@ class OrdemServicoAdmin(admin.ModelAdmin):
         }),
     )
 
-
-@admin.register(ItemOrdemServico)
-class ItemOrdemServicoAdmin(admin.ModelAdmin):
-    list_display = ['ordem_servico', 'descricao', 'quantidade', 'valor_unitario', 'valor_total']
-    list_filter = ['ordem_servico']
-    search_fields = ['descricao', 'ordem_servico__numero']
 
 
 @admin.register(EstadoCabelo)

@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.utils import timezone
 from datetime import date
 from django.conf import settings
-from .models import Cliente, OrdemServico, ItemOrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
+from .models import Cliente, OrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
 
 
 class DateTimeFieldISO(serializers.DateTimeField):
@@ -31,14 +31,6 @@ class ClienteSerializer(serializers.ModelSerializer):
         return value
 
 
-class ItemOrdemServicoSerializer(serializers.ModelSerializer):
-    """Serializer para itens de ordem de serviço."""
-
-    class Meta:
-        model = ItemOrdemServico
-        fields = ['id', 'descricao', 'quantidade', 'valor_unitario', 'valor_total']
-        read_only_fields = ['id', 'valor_total']
-
 
 class OrdemServicoSerializer(serializers.ModelSerializer):
     """Serializer para o modelo OrdemServico."""
@@ -66,7 +58,6 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
     data_finalizacao = DateTimeFieldISO(read_only=True, allow_null=True)
     data_faturamento = DateTimeFieldISO(read_only=True, allow_null=True)
     faturada = serializers.BooleanField(read_only=True)
-    itens = ItemOrdemServicoSerializer(many=True, read_only=True, required=False)
     numero = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     estado_cabelo = serializers.CharField(required=False, allow_blank=True)
     tipo_cabelo = serializers.CharField(required=False, allow_blank=True)
@@ -78,7 +69,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
             'estado_cabelo', 'tipo_cabelo', 'cor_cabelo', 'peso_gramas',
             'tamanho_cabelo_cm', 'cor_linha', 'servico', 'servico_id', 'servico_nome', 'valor_metro',
             'valor', 'data_criacao', 'prazo_entrega', 'data_finalizacao', 'faturada', 'data_faturamento',
-            'observacoes', 'usuario_criacao', 'usuario_criacao_nome', 'itens', 'entregue', 'pago_na_entrega', 'foto_entrega', 'forma_pagamento'
+            'observacoes', 'usuario_criacao', 'usuario_criacao_nome', 'entregue', 'pago_na_entrega', 'foto_entrega', 'forma_pagamento'
         ]
         read_only_fields = ['id', 'data_criacao', 'data_finalizacao', 'faturada', 'data_faturamento', 'usuario_criacao']
 

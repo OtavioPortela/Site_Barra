@@ -130,11 +130,21 @@ export const CreateClienteModal = ({ isOpen, onClose, onSuccess, clienteToEdit }
             <label htmlFor="telefone" className="block text-sm font-medium text-gray-700 mb-2">Telefone *</label>
             <input
               id="telefone"
-              type="text"
+              type="tel"
               value={formData.telefone}
-              onChange={(e) => { setFormData({ ...formData, telefone: e.target.value }); setErrors({ ...errors, telefone: '' }); }}
+              onChange={(e) => {
+                let v = e.target.value.replace(/\D/g, '');
+                if (v.length <= 10) {
+                  v = v.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+                } else {
+                  v = v.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3').replace(/-$/, '');
+                }
+                setFormData({ ...formData, telefone: v });
+                setErrors({ ...errors, telefone: '' });
+              }}
+              maxLength={15}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.telefone ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="(00) 00000-0000"
+              placeholder="(31) 99999-9999"
             />
             {errors.telefone && <p className="mt-1 text-sm text-red-600">{errors.telefone}</p>}
           </div>

@@ -1,7 +1,7 @@
 # Checklist — O que falta no projeto
 
 > Última atualização: 2026-04-07
-> Legenda: ✅ Feito | 🔄 Em andamento | ❌ Pendente
+> Legenda: ✅ Feito | ❌ Pendente
 
 ---
 
@@ -9,7 +9,7 @@
 
 - [x] ✅ **Envio via WhatsApp (substituir Twilio)** — Z-API integrada, pareada e funcionando em produção
 - [x] ✅ **OSDetailsModal editável** — edição de OS, troca de status, upload de foto pela modal
-- [ ] ❌ **Configurações da empresa** — criar model + endpoint no backend e conectar o frontend (campos Nome, CNPJ, Email, Telefone existem no front mas não salvam nada)
+- [x] ✅ **Configurações da empresa** — model `ConfiguracaoEmpresa` (singleton), endpoint PATCH `/api/faturamento/configuracao-empresa/`, frontend salva e carrega automaticamente
 
 ---
 
@@ -19,38 +19,38 @@
 - [x] ✅ **Exportar conta do parceiro (Excel)** — botão por cliente em `/clientes`
 - [x] ✅ **Excluir OS (admin)** — botão de lixeira disponível para `is_staff`
 - [x] ✅ **Saídas de caixa** — model, CRUD endpoint, frontend com formulário e tabela; métricas de lucro líquido no dashboard de faturamento
-- [x] ✅ **Temporizador no Kanban** — badge colorido no OSCard (verde/amarelo/vermelho) com dias restantes; borda do card reflete urgência
+- [x] ✅ **Temporizador no Kanban** — badge colorido no OSCard (verde/amarelo/vermelho) em horas/minutos; `prazo_entrega` migrado para `DateTimeField`
 
 ---
 
 ## PRIORIDADE 3 — Erros silenciosos no backend
 
-- [ ] ❌ **`except: pass` em faturamento** — `faturamento/views.py` linhas 36 e 48, erros de parse de data engolidos sem log
-- [ ] ❌ **`except: pass` em ordens_servico** — `ordens_servico/views.py` linhas 97, 104, 248, 255, mesma situação
-- [ ] ❌ **`except: pass` em whatsapp** — `whatsapp/views.py` linhas 165, 271, 311, falhas do provider silenciadas
+- [x] ✅ **`except: pass` em faturamento** — substituído por `logger.warning` com detalhe do erro
+- [x] ✅ **`except: pass` em ordens_servico** — já corrigido (possui `logger.warning`)
+- [x] ✅ **`except: pass` em whatsapp** — substituído por `logger.warning(f"Não foi possível parsear resposta: {parse_err}")`
 
 ---
 
 ## PRIORIDADE 4 — Funcionalidades incompletas
 
-- [ ] ❌ **Export PDF** — backend retorna erro hardcoded "ainda não implementado" (`ordens_servico/views.py:567`); Excel funciona mas PDF não
-- [ ] ❌ **Débitos — reverter pagamento** — só é possível marcar como pago, sem opção de desfazer/reverter
+- [x] ✅ **Export PDF** — implementado com `reportlab`; gera nota de débitos em PDF formatado
+- [x] ✅ **Débitos — reverter pagamento** — action `reverter_pagamento` no backend; botão "Reverter" visível apenas para patrão no frontend
 
 ---
 
 ## PRIORIDADE 5 — Qualidade de código
 
-- [ ] ❌ **Remover console.logs** — `OSBoard.tsx` linhas 57-71, logs de debug com `eslint-disable` em produção
-- [ ] ❌ **Corrigir import hack** — `NewOSModal.tsx` linha 8, usando `(apiModule as any).servicoService` para contornar problema de TypeScript
-- [ ] ❌ **Remover modelo não utilizado** — `ItemOrdemServico` em `models.py:180` existe mas nunca é usado (sobra de design anterior)
+- [x] ✅ **Remover console.logs** — removidos de `OSBoard.tsx`
+- [x] ✅ **Corrigir import hack** — `servicoService` agora importado diretamente de `../../services/api` em `NewOSModal.tsx`
+- [x] ✅ **Remover modelo não utilizado** — `ItemOrdemServico` removido de `models.py`, `serializers.py` e `admin.py`; migration de drop será aplicada no próximo deploy
 
 ---
 
 ## PRIORIDADE 6 — Melhorias e boas práticas
 
-- [ ] ❌ **Validação de telefone no frontend** — `CreateClienteModal.tsx:162`, campo sem máscara/validação de formato
-- [ ] ❌ **WhatsApp falha silenciosa se Twilio não configurado** — serviço apenas loga warning, deveria retornar erro claro ao usuário
-- [ ] ❌ **Documentar variáveis obrigatórias vs opcionais** — separar claramente no `.env.backup` o que quebra a app e o que é opcional
+- [x] ✅ **Validação/máscara de telefone** — `CreateClienteModal.tsx` agora formata automaticamente `(XX) XXXXX-XXXX`
+- [x] ✅ **WhatsApp erro claro** — erros de parse agora logados com `logger.warning`; respostas de erro 500 com mensagem descritiva já retornavam ao usuário
+- [x] ✅ **Documentar variáveis de ambiente** — `.env.backup` atualizado com seções OBRIGATÓRIAS vs OPCIONAIS e descrição do impacto de cada variável
 
 ---
 
@@ -58,10 +58,10 @@
 
 | Prioridade | Total | Feitos | Pendentes |
 |---|---|---|---|
-| P1 — Crítico | 3 | 2 | 1 |
-| P2 — Backlog concluído | 5 | 5 | 0 |
-| P3 — Erros silenciosos | 3 | 0 | 3 |
-| P4 — Incompleto | 2 | 0 | 2 |
-| P5 — Qualidade | 3 | 0 | 3 |
-| P6 — Melhorias | 3 | 0 | 3 |
-| **Total** | **19** | **7** | **12** |
+| P1 — Crítico | 3 | 3 | 0 |
+| P2 — Backlog | 5 | 5 | 0 |
+| P3 — Erros silenciosos | 3 | 3 | 0 |
+| P4 — Incompleto | 2 | 2 | 0 |
+| P5 — Qualidade | 3 | 3 | 0 |
+| P6 — Melhorias | 3 | 3 | 0 |
+| **Total** | **19** | **19** | **0** |

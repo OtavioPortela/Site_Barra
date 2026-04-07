@@ -11,5 +11,6 @@ urlpatterns = [
     path('por-periodo/', views.por_periodo_view, name='faturamento-por-periodo'),
     path('por-cliente/', views.por_cliente_view, name='faturamento-por-cliente'),
     path('relatorio/', views.relatorio_view, name='faturamento-relatorio'),
+    path('configuracao-empresa/', views.configuracao_empresa_view, name='configuracao-empresa'),
     path('', include(router.urls)),
 ]

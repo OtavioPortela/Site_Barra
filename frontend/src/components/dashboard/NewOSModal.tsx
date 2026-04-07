@@ -5,9 +5,7 @@ import { whatsappService } from '../../services/whatsappService';
 import { CreateClienteModal } from './CreateClienteModal';
 import type { Cliente } from '../../types';
 
-// Importação do servicoService - usando type assertion para evitar erro de cache do TypeScript
-import * as apiModule from '../../services/api';
-const servicoService = (apiModule as any).servicoService;
+import { servicoService } from '../../services/api';
 
 interface NewOSModalProps {
   isOpen: boolean;
@@ -555,7 +553,7 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-        <div className="flex-shrink-0 border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+        <div className="shrink-0 border-b border-gray-200 px-6 py-4 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-800">Nova Ordem de Serviço</h2>
           <button
             onClick={onClose}
@@ -1132,7 +1130,7 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
             </div>
           </div>
 
-          <div className="flex-shrink-0 flex justify-end space-x-4 pt-4 px-6 pb-6 border-t border-gray-200 bg-white">
+          <div className="shrink-0 flex justify-end space-x-4 pt-4 px-6 pb-6 border-t border-gray-200 bg-white">
             <button
               type="button"
               onClick={onClose}

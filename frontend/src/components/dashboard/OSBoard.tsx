@@ -54,21 +54,6 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
       }
 
       const data = await ordemServicoService.getAll(Object.keys(filters).length > 0 ? filters : undefined);
-      // Debug: verificar campos importantes
-      if (data && data.length > 0) {
-        // eslint-disable-next-line no-console
-        console.log('OSBoard.loadOrdens - exemplo de OS:', {
-          id: data[0].id,
-          numero: data[0].numero,
-          status: data[0].status,
-          entregue: (data as any)[0].entregue,
-          faturada: (data as any)[0].faturada,
-        });
-        // eslint-disable-next-line no-console
-        console.log('OSBoard.loadOrdens - Total de OS recebidas:', data.length);
-        // eslint-disable-next-line no-console
-        console.log('OSBoard.loadOrdens - OS faturadas no resultado:', data.filter((o: any) => o.faturada === true).length);
-      }
       setOrdens(data);
     } catch (error: any) {
       toast.error('Erro ao carregar ordens de serviço');

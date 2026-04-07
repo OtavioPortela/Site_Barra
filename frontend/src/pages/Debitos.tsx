@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { debitoService, clienteService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import toast from 'react-hot-toast';
 import type { Debito, Cliente } from '../types';
 
 export const Debitos = () => {
+  const { isPatrao } = useAuth();
   const [parceiroSelecionado, setParceiroSelecionado] = useState<number | null>(null);
   const [debitos, setDebitos] = useState<Debito[]>([]);
   const [clientesParceiros, setClientesParceiros] = useState<Cliente[]>([]);
@@ -100,6 +102,17 @@ export const Debitos = () => {
   const handleAbrirMarcarPago = (debito: Debito) => {
     setDebitoSelecionado(debito);
     setShowMarcarPagoModal(true);
+  };
+
+  const handleReverterPagamento = async (debito: Debito) => {
+    if (!window.confirm(`Reverter pagamento de "${debito.numero}"?`)) return;
+    try {
+      await debitoService.reverterPagamento(debito.id);
+      toast.success('Pagamento revertido.');
+      if (parceiroSelecionado) loadDebitos(parceiroSelecionado);
+    } catch {
+      toast.error('Erro ao reverter pagamento');
+    }
   };
 
   // Calcular resumo
@@ -229,13 +242,21 @@ export const Debitos = () => {
                          'Pendente'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
                       <button
                         onClick={() => handleAbrirMarcarPago(debito)}
-                        className="text-blue-600 hover:text-blue-900 mr-3"
+                        className="text-blue-600 hover:text-blue-900"
                       >
                         Marcar como Pago
                       </button>
+                      {isPatrao() && (
+                        <button
+                          onClick={() => handleReverterPagamento(debito)}
+                          className="text-orange-500 hover:text-orange-700"
+                        >
+                          Reverter
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

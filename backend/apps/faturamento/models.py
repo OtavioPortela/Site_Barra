@@ -2,6 +2,27 @@ from django.db import models
 from django.core.validators import MinValueValidator
 
 
+class ConfiguracaoEmpresa(models.Model):
+    """Configurações gerais da empresa (singleton — sempre id=1)."""
+    nome = models.CharField(max_length=200, default='Barra Confecções')
+    cnpj = models.CharField(max_length=18, blank=True, default='')
+    email = models.EmailField(blank=True, default='')
+    telefone = models.CharField(max_length=20, blank=True, default='')
+    endereco = models.TextField(blank=True, default='')
+
+    class Meta:
+        verbose_name = 'Configuração da Empresa'
+        verbose_name_plural = 'Configurações da Empresa'
+
+    def __str__(self):
+        return self.nome
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
 class SaidaCaixa(models.Model):
     CATEGORIA_CHOICES = [
         ('aluguel', 'Aluguel'),

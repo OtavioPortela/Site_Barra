@@ -9,8 +9,8 @@ from datetime import datetime, timedelta, date
 from apps.ordens_servico.models import OrdemServico
 from apps.ordens_servico.serializers import OrdemServicoListSerializer
 from apps.ordens_servico.permissions import IsStaffOnly
-from .models import SaidaCaixa
-from .serializers import SaidaCaixaSerializer
+from .models import SaidaCaixa, ConfiguracaoEmpresa
+from .serializers import SaidaCaixaSerializer, ConfiguracaoEmpresaSerializer
 import logging
 
 logger = logging.getLogger(__name__)
@@ -235,6 +235,20 @@ def relatorio_view(request):
     """Endpoint para relatório completo."""
     # Similar ao dashboard, mas com mais detalhes
     return dashboard_view(request)
+
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated, IsStaffOnly])
+def configuracao_empresa_view(request):
+    """GET retorna config atual; PATCH atualiza."""
+    config = ConfiguracaoEmpresa.get()
+    if request.method == 'PATCH':
+        serializer = ConfiguracaoEmpresaSerializer(config, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response(ConfiguracaoEmpresaSerializer(config).data)
 
 
 class SaidaCaixaViewSet(ModelViewSet):
