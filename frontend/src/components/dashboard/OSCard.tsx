@@ -2,6 +2,26 @@ import { useAuth } from '../../contexts/AuthContext';
 import type { OrdemServico } from '../../types';
 import { formatCurrency, formatDate, getStatusColor } from '../../utils/helpers';
 
+function getPrazoInfo(prazoEntrega: string, status: OrdemServico['status']) {
+  if (status === 'finalizada') return null;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const prazo = new Date(prazoEntrega + 'T00:00:00');
+  const diffMs = prazo.getTime() - hoje.getTime();
+  const diffDias = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDias < 0) {
+    return { label: `Atrasado ${Math.abs(diffDias)}d`, border: 'border-red-500', badge: 'bg-red-100 text-red-700' };
+  }
+  if (diffDias === 0) {
+    return { label: 'Vence hoje', border: 'border-red-400', badge: 'bg-red-100 text-red-700' };
+  }
+  if (diffDias <= 3) {
+    return { label: `${diffDias}d restante${diffDias > 1 ? 's' : ''}`, border: 'border-yellow-400', badge: 'bg-yellow-100 text-yellow-700' };
+  }
+  return { label: `${diffDias}d restantes`, border: 'border-green-400', badge: 'bg-green-100 text-green-700' };
+}
+
 interface OSCardProps {
   ordem: OrdemServico;
   onViewDetails: (ordem: OrdemServico) => void;
@@ -44,6 +64,7 @@ export const OSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar, onEmit
 
   const nextStatus = getNextStatus(ordem.status);
   const previousStatus = getPreviousStatus(ordem.status);
+  const prazoInfo = getPrazoInfo(ordem.prazo_entrega, ordem.status);
 
   const handleStatusChange = (newStatus: OrdemServico['status']) => {
     if (onChangeStatus) {
@@ -58,7 +79,7 @@ export const OSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar, onEmit
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 mb-4 hover:shadow-lg transition-shadow border-l-4 border-blue-500">
+    <div className={`bg-white rounded-lg shadow-md p-4 mb-4 hover:shadow-lg transition-shadow border-l-4 ${prazoInfo ? prazoInfo.border : 'border-blue-500'}`}>
       <div className="flex justify-between items-start mb-2">
         <div className="flex-1">
           <h3 className="font-semibold text-lg text-gray-800">
@@ -72,6 +93,12 @@ export const OSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar, onEmit
         </span>
       </div>
       <p className="text-xs text-gray-400 mb-2">OS #{ordem.numero}</p>
+
+      {prazoInfo && (
+        <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold mb-2 ${prazoInfo.badge}`}>
+          ⏱ {prazoInfo.label}
+        </span>
+      )}
 
       {ordem.descricao && (
         <p className="text-sm text-gray-700 mb-3 line-clamp-2">{ordem.descricao}</p>
