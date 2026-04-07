@@ -249,15 +249,17 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='exportar-excel', permission_classes=[IsAuthenticated, IsStaffOnly])
     def exportar_excel(self, request):
-        """Endpoint para exportar todas as OS para Excel."""
-        # Obter filtros
+        """Endpoint para exportar OS para Excel. Aceita cliente_id para exportar conta de um cliente."""
         status_filter = request.query_params.get('status')
         faturada_filter = request.query_params.get('faturada')
         data_inicio = request.query_params.get('data_inicio')
         data_fim = request.query_params.get('data_fim')
+        cliente_id = request.query_params.get('cliente_id')
 
-        # Filtrar OS
         queryset = OrdemServico.objects.all().select_related('cliente', 'servico', 'usuario_criacao')
+
+        if cliente_id:
+            queryset = queryset.filter(cliente_id=cliente_id)
 
         if status_filter:
             queryset = queryset.filter(status=status_filter)
@@ -337,7 +339,14 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
-        filename = f'ordens_servico_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        if cliente_id:
+            try:
+                nome_cliente = queryset.first().cliente.nome.replace(' ', '_') if queryset.exists() else 'cliente'
+                filename = f'conta_{nome_cliente}_{datetime.now().strftime("%Y%m%d")}.xlsx'
+            except Exception:
+                filename = f'conta_cliente_{datetime.now().strftime("%Y%m%d")}.xlsx'
+        else:
+            filename = f'ordens_servico_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
         wb.save(response)

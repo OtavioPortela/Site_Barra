@@ -3,8 +3,10 @@ import { clienteService } from '../services/api';
 import { CreateClienteModal } from '../components/dashboard/CreateClienteModal';
 import toast from 'react-hot-toast';
 import type { Cliente } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Clientes = () => {
+  const { isPatrao } = useAuth();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -33,6 +35,24 @@ export const Clientes = () => {
 
   const handleClienteCreated = () => {
     loadClientes();
+  };
+
+  const handleExportarConta = async (cliente: Cliente) => {
+    try {
+      const token = localStorage.getItem('token');
+      const url = `${import.meta.env.VITE_API_URL}/ordens-servico/exportar-excel/?cliente_id=${cliente.id}`;
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (!response.ok) throw new Error();
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `conta_${cliente.nome.replace(/\s+/g, '_')}.xlsx`;
+      link.click();
+      window.URL.revokeObjectURL(link.href);
+      toast.success(`Conta de ${cliente.nome} exportada!`);
+    } catch {
+      toast.error('Erro ao exportar conta do cliente');
+    }
   };
 
   const handleDelete = async (cliente: Cliente) => {
@@ -144,6 +164,11 @@ export const Clientes = () => {
                     <button onClick={() => setClienteToEdit(cliente)} className="flex-1 py-1.5 text-sm font-medium text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors">
                       Editar
                     </button>
+                    {isPatrao() && (
+                      <button onClick={() => handleExportarConta(cliente)} className="flex-1 py-1.5 text-sm font-medium text-green-600 border border-green-300 rounded-lg hover:bg-green-50 transition-colors">
+                        Exportar
+                      </button>
+                    )}
                     <button onClick={() => handleDelete(cliente)} className="flex-1 py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors">
                       Excluir
                     </button>
@@ -243,6 +268,11 @@ export const Clientes = () => {
                       <button onClick={() => setClienteToEdit(cliente)} className="text-blue-600 hover:text-blue-800 font-medium transition-colors">
                         Editar
                       </button>
+                      {isPatrao() && (
+                        <button onClick={() => handleExportarConta(cliente)} className="text-green-600 hover:text-green-800 font-medium transition-colors">
+                          Exportar
+                        </button>
+                      )}
                       <button onClick={() => handleDelete(cliente)} className="text-red-600 hover:text-red-800 font-medium transition-colors">
                         Excluir
                       </button>
