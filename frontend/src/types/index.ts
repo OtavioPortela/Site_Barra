@@ -62,11 +62,13 @@ export interface LoginCredentials {
 
 export interface SaidaCaixa {
   id: number;
+  tipo: 'saida' | 'entrada';
   descricao: string;
   valor: number;
   categoria: string;
   data: string;
   observacoes: string;
+  criado_por_nome: string | null;
   data_criacao: string;
 }
 

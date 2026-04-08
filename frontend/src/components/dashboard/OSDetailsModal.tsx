@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { ordemServicoService, estadoCabeloService, tipoCabeloService, corCabeloService, corLinhaService } from '../../services/api';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/helpers';
 import { imprimirNota } from '../../utils/printHelpers';
+import { useAuth } from '../../contexts/AuthContext';
 import * as apiModule from '../../services/api';
 const servicoService = (apiModule as any).servicoService;
 
@@ -28,11 +29,15 @@ const getStatusColor = (status: string) => {
 };
 
 export const OSDetailsModal = ({ isOpen, onClose, ordemId, onUpdated }: OSDetailsModalProps) => {
+  const { isPatrao } = useAuth();
   const [ordem, setOrdem] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editData, setEditData] = useState<any>({});
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [motivoCancelamento, setMotivoCancelamento] = useState('');
+  const [canceling, setCanceling] = useState(false);
 
   // Opções dos dropdowns
   const [estadosCabelo, setEstadosCabelo] = useState<Array<{ id: number; nome: string; valor: string }>>([]);
@@ -111,6 +116,28 @@ export const OSDetailsModal = ({ isOpen, onClose, ordemId, onUpdated }: OSDetail
   };
 
   const cancelEditing = () => setIsEditing(false);
+
+  const handleCancelarOS = async () => {
+    if (!motivoCancelamento.trim()) {
+      toast.error('Informe o motivo do cancelamento.');
+      return;
+    }
+    setCanceling(true);
+    try {
+      // Salvar motivo nas observações antes de deletar
+      await ordemServicoService.update(ordemId!, {
+        observacoes: `[CANCELADA] Motivo: ${motivoCancelamento.trim()}${ordem.observacoes ? `\n\n${ordem.observacoes}` : ''}`,
+      });
+      await ordemServicoService.delete(ordemId!);
+      toast.success('OS cancelada com sucesso.');
+      onUpdated?.();
+      onClose();
+    } catch {
+      toast.error('Erro ao cancelar a OS.');
+    } finally {
+      setCanceling(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -355,6 +382,35 @@ export const OSDetailsModal = ({ isOpen, onClose, ordemId, onUpdated }: OSDetail
           )}
         </div>
 
+        {/* Painel de confirmação de cancelamento */}
+        {showCancelConfirm && (
+          <div className="shrink-0 px-6 py-4 bg-red-50 border-t border-red-200">
+            <p className="text-sm font-semibold text-red-700 mb-2">Confirmar cancelamento da OS #{ordem?.numero}</p>
+            <textarea
+              value={motivoCancelamento}
+              onChange={e => setMotivoCancelamento(e.target.value)}
+              rows={2}
+              placeholder="Motivo do cancelamento (obrigatório)..."
+              className="w-full px-3 py-2 border border-red-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent mb-3"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setShowCancelConfirm(false); setMotivoCancelamento(''); }}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={handleCancelarOS}
+                disabled={canceling || !motivoCancelamento.trim()}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium disabled:opacity-50"
+              >
+                {canceling ? 'Cancelando...' : 'Confirmar cancelamento'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="shrink-0 flex justify-between items-center px-6 py-4 border-t border-gray-200 bg-white">
           <div className="flex gap-3">
@@ -369,6 +425,14 @@ export const OSDetailsModal = ({ isOpen, onClose, ordemId, onUpdated }: OSDetail
                   <path fillRule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clipRule="evenodd" />
                 </svg>
                 Imprimir
+              </button>
+            )}
+            {!isEditing && ordem && !ordem.faturada && isPatrao() && !showCancelConfirm && (
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                className="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
+              >
+                Cancelar OS
               </button>
             )}
           </div>

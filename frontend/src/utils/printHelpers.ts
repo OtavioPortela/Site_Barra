@@ -82,6 +82,14 @@ export const formatarNotaTermica = (ordem: OrdemServico, _formaPagamentoOverride
     detalhesCabelo = `\nDetalhes do Cabelo:\n${detalhesCabelo}`;
   }
 
+  const observacoesSection = ordem.observacoes
+    ? `${'='.repeat(48)}
+          OBSERVACOES
+${'='.repeat(48)}
+${ordem.observacoes}
+`
+    : '';
+
   return `${'='.repeat(48)}
           ${razaoSocial}
           ${nomeFantasia}
@@ -107,7 +115,7 @@ ${'='.repeat(48)}
 ${'='.repeat(48)}
 VALOR TOTAL: R$ ${valorTotal}
 ${'='.repeat(48)}
-       INFORMACOES ADICIONAIS
+${observacoesSection}       INFORMACOES ADICIONAIS
 ${'='.repeat(48)}
 Criado por: ${ordem.usuario_criacao_nome || '-'}
 ${'='.repeat(48)}

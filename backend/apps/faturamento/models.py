@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from django.conf import settings
 
 
 class ConfiguracaoEmpresa(models.Model):
@@ -34,17 +35,31 @@ class SaidaCaixa(models.Model):
         ('outro', 'Outro'),
     ]
 
+    TIPO_CHOICES = [
+        ('saida', 'Saída'),
+        ('entrada', 'Entrada'),
+    ]
+
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='saida', verbose_name='Tipo')
     descricao = models.CharField(max_length=255)
     valor = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     categoria = models.CharField(max_length=20, choices=CATEGORIA_CHOICES, default='outro')
     data = models.DateField()
     observacoes = models.TextField(blank=True, default='')
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lancamentos_caixa',
+        verbose_name='Registrado por',
+    )
     data_criacao = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-data', '-data_criacao']
-        verbose_name = 'Saída de Caixa'
-        verbose_name_plural = 'Saídas de Caixa'
+        verbose_name = 'Lançamento de Caixa'
+        verbose_name_plural = 'Lançamentos de Caixa'
 
     def __str__(self):
-        return f"{self.descricao} — R$ {self.valor} ({self.data})"
+        return f"[{self.get_tipo_display()}] {self.descricao} — R$ {self.valor} ({self.data})"

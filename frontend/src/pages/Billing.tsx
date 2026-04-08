@@ -17,6 +17,7 @@ const CATEGORIAS = [
 ];
 
 const emptyForm = {
+  tipo: 'saida' as 'saida' | 'entrada',
   descricao: '',
   valor: '',
   categoria: 'outro',
@@ -105,6 +106,7 @@ export const Billing = () => {
     try {
       setSavingSaida(true);
       await saidaCaixaService.create({
+        tipo: formSaida.tipo,
         descricao: formSaida.descricao,
         valor,
         categoria: formSaida.categoria,
@@ -209,18 +211,43 @@ export const Billing = () => {
       {/* Seção de Saídas de Caixa */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-800">Saídas de Caixa</h2>
+          <h2 className="text-xl font-bold text-gray-800">Lançamentos de Caixa</h2>
           <button
             onClick={() => setShowSaidaForm((v) => !v)}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
           >
-            {showSaidaForm ? 'Cancelar' : '+ Nova Saída'}
+            {showSaidaForm ? 'Cancelar' : '+ Novo Lançamento'}
           </button>
         </div>
 
         {showSaidaForm && (
           <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-            <h3 className="text-base font-semibold text-gray-700 mb-3">Registrar Saída</h3>
+            <h3 className="text-base font-semibold text-gray-700 mb-3">Registrar Lançamento</h3>
+            {/* Toggle Tipo */}
+            <div className="flex gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => handleSaidaChange('tipo', 'saida')}
+                className={`flex-1 py-2 rounded-lg font-medium text-sm border transition-colors ${
+                  formSaida.tipo === 'saida'
+                    ? 'bg-red-600 text-white border-red-600'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-red-400'
+                }`}
+              >
+                Saída (despesa)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSaidaChange('tipo', 'entrada')}
+                className={`flex-1 py-2 rounded-lg font-medium text-sm border transition-colors ${
+                  formSaida.tipo === 'entrada'
+                    ? 'bg-green-600 text-white border-green-600'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-green-400'
+                }`}
+              >
+                Entrada (recebimento)
+              </button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Descrição *</label>
@@ -280,9 +307,11 @@ export const Billing = () => {
               <button
                 onClick={handleSaveSaida}
                 disabled={savingSaida}
-                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm disabled:opacity-50"
+                className={`px-6 py-2 text-white rounded-lg transition-colors font-medium text-sm disabled:opacity-50 ${
+                  formSaida.tipo === 'entrada' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+                }`}
               >
-                {savingSaida ? 'Salvando...' : 'Salvar Saída'}
+                {savingSaida ? 'Salvando...' : `Salvar ${formSaida.tipo === 'entrada' ? 'Entrada' : 'Saída'}`}
               </button>
             </div>
           </div>
@@ -298,9 +327,11 @@ export const Billing = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Registrado por</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
                   </tr>
@@ -308,6 +339,13 @@ export const Billing = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {saidas.map((saida) => (
                     <tr key={saida.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          saida.tipo === 'entrada' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {saida.tipo === 'entrada' ? '+ Entrada' : '− Saída'}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                         {new Date(saida.data + 'T00:00:00').toLocaleDateString('pt-BR')}
                       </td>
@@ -322,8 +360,13 @@ export const Billing = () => {
                           {CATEGORIAS.find((c) => c.value === saida.categoria)?.label ?? saida.categoria}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-red-600 whitespace-nowrap">
-                        {formatCurrency(Number(saida.valor))}
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {saida.criado_por_nome ?? '—'}
+                      </td>
+                      <td className={`px-4 py-3 text-sm font-medium whitespace-nowrap ${
+                        saida.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {saida.tipo === 'entrada' ? '+' : '−'} {formatCurrency(Number(saida.valor))}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <button

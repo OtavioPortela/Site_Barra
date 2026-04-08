@@ -128,7 +128,8 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
 
         // Se for adicionar à conta, não faturar (apenas atualiza o status de pagamento para nulo)
         if (ehParceiro && adicionarAConta) {
-          alert('Adicionado à conta do parceiro com sucesso!');
+          // Faturar a OS para sair do kanban (forma_pagamento permanece null → aparece em Débitos)
+          await onConfirm();
           onClose();
           return;
         }

@@ -204,6 +204,7 @@ export const saidaCaixaService = {
   },
 
   create: async (data: {
+    tipo: 'saida' | 'entrada';
     descricao: string;
     valor: number;
     categoria: string;

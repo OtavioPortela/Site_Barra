@@ -134,16 +134,39 @@ def enviar_nota_os(request):
             status=status.HTTP_404_NOT_FOUND
         )
 
-    # Mensagem simples informando que o pedido está pronto
-    mensagem = f"Olá {ordem_servico.cliente.nome if ordem_servico.cliente else 'Cliente'}!\n\n"
-    mensagem += f"Seu pedido *{ordem_servico.numero}* já está pronto para retirada! 🎉\n\n"
-    mensagem += "Aguardamos você em nossa loja.\n\n"
-    mensagem += "Obrigado pela preferência! 🙏\n\n"
-    mensagem += "💬 *Ajude-nos a melhorar!*\n"
-    mensagem += "Avalie nossa loja no Google Maps:\n"
-    mensagem += "https://www.google.com/maps/place/Barra+confec%C3%A7%C3%B5es/data=!4m2!3m1!1s0x0:0x867cefdc13357c1d?sa=X&ved=1t:2428&ictx=111\n\n"
-    mensagem += "📱 *Não esqueça de seguir nossa página no Instagram:*\n"
-    mensagem += "https://www.instagram.com/barraconfeccoes?igsh=MWprYml1aGx0b3duMg=="
+    # Formatar campos de pagamento e serviço
+    forma_pagamento_labels = {
+        'dinheiro': 'Dinheiro',
+        'pix': 'PIX',
+        'cartao_credito': 'Cartão de Crédito',
+        'cartao_debito': 'Cartão de Débito',
+    }
+    forma_pgto = forma_pagamento_labels.get(
+        ordem_servico.forma_pagamento or '', 'A combinar'
+    )
+    servico_nome = ordem_servico.servico.nome if ordem_servico.servico else '-'
+    valor_formatado = f"R$ {float(ordem_servico.valor):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+
+    nome_cliente = ordem_servico.cliente.nome if ordem_servico.cliente else 'Cliente'
+
+    mensagem = (
+        f"Olá, *{nome_cliente}*! 🎉\n\n"
+        f"Seu pedido *#{ordem_servico.numero}* está pronto!\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"📋 *Detalhes do pedido*\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"• Serviço: {servico_nome}\n"
+        f"• Valor: *{valor_formatado}*\n"
+        f"• Pagamento: {forma_pgto}\n\n"
+        f"📍 Aguardamos você em nossa loja!\n\n"
+        f"Obrigado pela preferência! 🙏\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"💬 *Ajude-nos a melhorar!*\n"
+        f"Avalie no Google Maps:\n"
+        f"https://www.google.com/maps/place/Barra+confec%C3%A7%C3%B5es/data=!4m2!3m1!1s0x0:0x867cefdc13357c1d?sa=X&ved=1t:2428&ictx=111\n\n"
+        f"📱 Siga no Instagram:\n"
+        f"https://www.instagram.com/barraconfeccoes?igsh=MWprYml1aGx0b3duMg=="
+    )
 
     try:
         service = WhatsAppService()
@@ -221,36 +244,24 @@ def enviar_os_criada(request):
     try:
         service = WhatsAppService()
 
-        # Twilio requer URLs públicas acessíveis via HTTPS para enviar imagens
-        # Se a imagem estiver em localhost, enviar apenas texto
-        # Se tiver foto e URL for pública, tentar enviar imagem
         com_imagem = False
         if ordem_servico.foto_entrega:
-            import os as _os
-            media_path = ordem_servico.foto_entrega.url
-            railway_domain = _os.environ.get('RAILWAY_PUBLIC_DOMAIN', '')
-            if railway_domain:
-                url_imagem = f"https://{railway_domain}{media_path}"
-            else:
-                url_imagem = request.build_absolute_uri(media_path)
-
-            eh_publica = 'localhost' not in url_imagem and '127.0.0.1' not in url_imagem and url_imagem.startswith('https://')
-
-            if not eh_publica:
-                logger.info(f"Imagem em URL não pública ({url_imagem}), enviando apenas texto")
+            try:
+                import base64, mimetypes
+                # Ler o arquivo diretamente do disco — sem depender de URL pública
+                with ordem_servico.foto_entrega.open('rb') as f:
+                    image_data = f.read()
+                mime_type = mimetypes.guess_type(ordem_servico.foto_entrega.name)[0] or 'image/jpeg'
+                image_b64 = f"data:{mime_type};base64,{base64.b64encode(image_data).decode('utf-8')}"
+                logger.info(f"Enviando OS com imagem (base64, {len(image_data)} bytes)")
+                resultado = service.enviar_imagem(numero, image_b64, mensagem)
+                com_imagem = True
+            except Exception as img_error:
+                logger.warning(f"Falha ao enviar imagem via base64, enviando texto: {img_error}")
                 resultado = service.enviar_texto(numero, mensagem)
-            else:
-                try:
-                    logger.info(f"Enviando OS com imagem: {url_imagem}")
-                    resultado = service.enviar_imagem(numero, url_imagem, mensagem)
-                    com_imagem = True
-                except Exception as img_error:
-                    logger.warning(f"Falha ao enviar imagem, enviando texto: {img_error}")
-                    resultado = service.enviar_texto(numero, mensagem)
         else:
-            # Enviar apenas texto
             resultado = service.enviar_texto(numero, mensagem)
-            logger.info(f"OS criada enviada (sem imagem). SID: {resultado.get('sid')}")
+            logger.info(f"OS criada enviada (sem imagem).")
 
         return Response({
             'success': True,

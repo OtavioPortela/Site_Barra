@@ -14,6 +14,7 @@ import { Clientes } from './pages/Clientes';
 import { Funcionarios } from './pages/Funcionarios';
 import { Configuracoes } from './pages/Configuracoes';
 import { Debitos } from './pages/Debitos';
+import { Caixa } from './pages/Caixa';
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -114,6 +115,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <AppLayout>
               <Debitos />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/caixa"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <Caixa />
             </AppLayout>
           </ProtectedRoute>
         }

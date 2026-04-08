@@ -135,15 +135,15 @@ def dashboard_view(request):
     ordens_finalizadas = os_finalizadas.order_by('-data_finalizacao')[:50]
     serializer = OrdemServicoListSerializer(ordens_finalizadas, many=True)
 
-    # Saídas de caixa
-    saidas_qs = SaidaCaixa.objects.all()
+    # Saídas de caixa (apenas tipo='saida' impacta o lucro)
+    saidas_qs = SaidaCaixa.objects.filter(tipo='saida')
     if data_inicio:
         saidas_qs = saidas_qs.filter(data__gte=data_inicio)
     if data_fim:
         saidas_qs = saidas_qs.filter(data__lte=data_fim)
     total_saidas = saidas_qs.aggregate(Sum('valor'))['valor__sum'] or 0
 
-    saidas_mensal = SaidaCaixa.objects.filter(data__gte=timezone.now().date() - timedelta(days=30))
+    saidas_mensal = SaidaCaixa.objects.filter(tipo='saida', data__gte=timezone.now().date() - timedelta(days=30))
     total_saidas_mensal = saidas_mensal.aggregate(Sum('valor'))['valor__sum'] or 0
 
     return Response({
@@ -253,19 +253,47 @@ def configuracao_empresa_view(request):
 
 class SaidaCaixaViewSet(ModelViewSet):
     serializer_class = SaidaCaixaSerializer
-    permission_classes = [IsAuthenticated, IsStaffOnly]
     queryset = SaidaCaixa.objects.all()
 
+    def get_permissions(self):
+        # Qualquer autenticado pode criar e listar (lista filtrada por get_queryset)
+        if self.action in ('create', 'list', 'retrieve'):
+            return [IsAuthenticated()]
+        # Funcionário pode excluir apenas o próprio registro (verificado em destroy)
+        if self.action == 'destroy':
+            return [IsAuthenticated()]
+        # Edição (update/partial_update) restrita ao staff
+        return [IsAuthenticated(), IsStaffOnly()]
+
     def get_queryset(self):
-        qs = SaidaCaixa.objects.all()
+        qs = SaidaCaixa.objects.select_related('criado_por')
+        # Funcionários veem apenas os próprios lançamentos
+        if not self.request.user.is_staff:
+            qs = qs.filter(criado_por=self.request.user)
         data_inicio = self.request.query_params.get('data_inicio')
         data_fim = self.request.query_params.get('data_fim')
         categoria = self.request.query_params.get('categoria')
+        tipo = self.request.query_params.get('tipo')
         if data_inicio:
             qs = qs.filter(data__gte=data_inicio)
         if data_fim:
             qs = qs.filter(data__lte=data_fim)
         if categoria:
             qs = qs.filter(categoria=categoria)
+        if tipo:
+            qs = qs.filter(tipo=tipo)
         return qs
+
+    def perform_create(self, serializer):
+        serializer.save(criado_por=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Funcionários só podem excluir os próprios lançamentos
+        if not request.user.is_staff and instance.criado_por != request.user:
+            return Response(
+                {'erro': 'Você só pode excluir lançamentos que você mesmo registrou.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().destroy(request, *args, **kwargs)
 
