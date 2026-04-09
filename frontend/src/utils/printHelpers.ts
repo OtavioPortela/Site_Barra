@@ -10,29 +10,6 @@ export const getFormaPagamentoLabel = (forma?: string | null): string => {
   return forma ? labels[forma] || forma : 'A definir';
 };
 
-const getEstadoCabeloLabel = (estado: string) => {
-  const labels: Record<string, string> = {
-    novo: 'Novo',
-    descolorido: 'Descolorido',
-    branco: 'Branco',
-    preto: 'Preto',
-    castanho: 'Castanho',
-    rubro: 'Rubro',
-    loiro: 'Loiro',
-    pintado: 'Pintado',
-  };
-  return labels[estado] || estado;
-};
-
-const getTipoCabeloLabel = (tipo: string) => {
-  const labels: Record<string, string> = {
-    liso: 'Liso',
-    ondulado: 'Ondulado',
-    cacheado: 'Cacheado',
-    crespo: 'Crespo',
-  };
-  return labels[tipo] || tipo;
-};
 
 export const formatarNotaTermica = (ordem: OrdemServico, _formaPagamentoOverride?: string): string => {
   const formatCurrency = (value: number) => {
@@ -46,11 +23,6 @@ export const formatarNotaTermica = (ordem: OrdemServico, _formaPagamentoOverride
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR');
   };
-
-  // const formatTime = (dateString: string) => {
-  //   const date = new Date(dateString);
-  //   return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  // };
 
   // Dados básicos
   const dataCriacao = ordem.data_criacao ? formatDate(ordem.data_criacao) : '-';
@@ -68,19 +40,12 @@ export const formatarNotaTermica = (ordem: OrdemServico, _formaPagamentoOverride
   const nomeFantasia = 'BARRA CONFECCOES';
   const cnpj = '59.220.325/0001-22';
 
-  // Construir detalhes do cabelo
-  let detalhesCabelo = '';
-  if (ordem.estado_cabelo) detalhesCabelo += `- Estado: ${getEstadoCabeloLabel(ordem.estado_cabelo)}\n`;
-  if (ordem.tipo_cabelo) detalhesCabelo += `- Tipo: ${getTipoCabeloLabel(ordem.tipo_cabelo)}\n`;
-  if (ordem.cor_cabelo) detalhesCabelo += `- Cor: ${ordem.cor_cabelo}\n`;
-  if (ordem.peso_gramas) detalhesCabelo += `- Peso: ${ordem.peso_gramas}g\n`;
-  if (ordem.tamanho_cabelo_cm) detalhesCabelo += `- Tamanho: ${ordem.tamanho_cabelo_cm}cm\n`;
-  if (ordem.cor_linha) detalhesCabelo += `- Linha: ${ordem.cor_linha}\n`;
-
-  // Se tiver detalhes, adicionar cabeçalho antes
-  if (detalhesCabelo) {
-    detalhesCabelo = `\nDetalhes do Cabelo:\n${detalhesCabelo}`;
-  }
+  // Forma de pagamento
+  const formaPgto = ordem.forma_pagamento
+    ? getFormaPagamentoLabel(ordem.forma_pagamento)
+    : ordem.cliente_eh_parceiro
+    ? 'Conta do parceiro'
+    : 'A definir';
 
   const observacoesSection = ordem.observacoes
     ? `${'='.repeat(48)}
@@ -105,15 +70,16 @@ ${'='.repeat(48)}
            DADOS DO CLIENTE
 ${'='.repeat(48)}
 Cliente: ${ordem.cliente || 'CONSUMIDOR NÃO IDENTIFICADO'}
+Telefone: ${ordem.cliente_telefone || '-'}
 ${'='.repeat(48)}
           DETALHES DO SERVICO
 ${'='.repeat(48)}
 Servico: ${ordem.servico || '-'}
-${detalhesCabelo}
 ${'='.repeat(48)}
             VALORES
 ${'='.repeat(48)}
 VALOR TOTAL: R$ ${valorTotal}
+Forma de Pagamento: ${formaPgto}
 ${'='.repeat(48)}
 ${observacoesSection}       INFORMACOES ADICIONAIS
 ${'='.repeat(48)}

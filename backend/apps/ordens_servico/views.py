@@ -200,7 +200,9 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             )
 
         # VALIDAÇÃO: Verificar se a forma de pagamento foi definida
-        if not ordem_servico.forma_pagamento:
+        # Parceiros podem ficar sem forma de pagamento (conta pendurada → aparece em Débitos)
+        eh_parceiro = ordem_servico.cliente and ordem_servico.cliente.eh_parceiro
+        if not ordem_servico.forma_pagamento and not eh_parceiro:
             return Response(
                 {'error': 'É necessário definir a forma de pagamento antes de faturar a ordem de serviço.'},
                 status=status.HTTP_400_BAD_REQUEST

@@ -1,6 +1,6 @@
 # Backlog — Maio 2026
 
-> Criado em: 2026-04-08 | Última atualização: 2026-04-08
+> Criado em: 2026-04-08 | Última atualização: 2026-04-09
 > Legenda: ✅ Feito | 🔄 Em andamento | ❌ Pendente
 
 ---
@@ -10,11 +10,10 @@
 ### [BUG] Pendurar conta não funciona
 - **Status:** ✅ Feito (2026-04-08)
 - **Descrição:** Quando o usuário escolhe "Adicionar à conta do parceiro" no modal de faturamento,
-  o `faturar()` nunca é chamado — a OS fica no kanban ao invés de sair para os Débitos.
-- **Causa raiz:** `ImprimirNotaModal.tsx` linha ~130 chama `onClose()` sem chamar `onConfirm()`
-  quando `ehParceiro && adicionarAConta` é true. A forma de pagamento também é enviada como
-  `undefined` (ignorada pelo JSON.stringify) então não altera nada no backend.
-- **Correção:** Chamar `onConfirm()` antes de fechar quando pendurar é escolhido.
+  o `faturar()` nunca era chamado — a OS ficava no kanban ao invés de sair para os Débitos.
+- **Causa raiz:** `ImprimirNotaModal.tsx` chamava `onClose()` sem chamar `onConfirm()`
+  quando `ehParceiro && adicionarAConta` era true.
+- **Correção:** Adicionado `await onConfirm()` antes de `onClose()` no bloco de pendurar conta.
 
 ---
 
@@ -22,46 +21,70 @@
 
 ### Caixa disponível para funcionário (sem acesso ao faturamento)
 - **Status:** ✅ Feito (2026-04-08)
-- **Descrição:** Nova página `/caixa` acessível a todos os usuários. Funcionário registra entradas
-  e saídas e vê apenas os próprios lançamentos. Admin vê tudo na tela de Faturamento com coluna
-  "Registrado por". Campo `tipo` (entrada/saída) adicionado ao model `SaidaCaixa`.
+- **Descrição:** Nova página `/caixa` acessível a todos os usuários autenticados.
+  Funcionário registra entradas e saídas e vê apenas os próprios lançamentos.
+  Admin vê tudo na tela de Faturamento com coluna "Registrado por".
+- **Detalhes:**
+  - Model `SaidaCaixa` recebeu campo `tipo` (entrada/saída) e FK `criado_por`
+  - `SaidaCaixaViewSet` filtra por `criado_por` para não-staff
+  - Página `Caixa.tsx` com toggle entrada/saída, cards de resumo e CRUD
+  - Sidebar com link para `/caixa` sem `requiresStaff`
 
 ### Cancelar OS com motivo
 - **Status:** ✅ Feito (2026-04-08)
-- **Descrição:** Na edição de uma OS, adicionar botão "Cancelar OS" que exige preenchimento
-  de um motivo de cancelamento antes de excluir. Restrito ao patrão (is_staff).
+- **Descrição:** Na edição de uma OS, botão "Cancelar OS" (restrito ao patrão) que exige
+  preenchimento de motivo antes de excluir.
 - **Detalhes:**
-  - Modal de confirmação com campo de texto obrigatório "Motivo do cancelamento"
-  - Registrar o motivo no campo `observacoes` da OS antes de deletar (para histórico)
-  - Chamar `DELETE /api/ordens-servico/{id}/`
+  - Modal de confirmação com textarea obrigatório
+  - Motivo salvo em `observacoes` como `[CANCELADA] Motivo: ...` antes de deletar
+  - Chama `DELETE /api/ordens-servico/{id}/`
+  - Visível apenas para `is_staff` e OS não faturada
 
 ### Mensagem WhatsApp final com endereço da loja
-- **Status:** ❌ Aguardando endereço
-- **Descrição:** Incluir o endereço físico da loja na mensagem enviada ao cliente quando
-  a OS é finalizada (`enviar-nota-os`).
-- **Pendência:** Usuário precisa fornecer o endereço correto para incluir.
+- **Status:** ✅ Feito (2026-04-09)
+- **Descrição:** Endereço da loja incluído na mensagem de finalização (`enviar-nota-os`).
+- **Endereço:** R. Curitiba, 705 - Centro, Belo Horizonte - MG, 30170-120
 
 ### Reformatar nota final (WhatsApp de OS finalizada)
 - **Status:** ✅ Feito (2026-04-08)
-- **Descrição:** Melhorar a mensagem do WhatsApp de finalização (`enviar-nota-os`) para exibir:
-  - Pagamento final (valor total)
-  - Forma de pagamento registrada
+- **Descrição:** Mensagem do WhatsApp de finalização (`enviar-nota-os`) reformatada para exibir:
   - Serviço realizado
-  - Layout mais bonito/legível
+  - Valor total formatado (R$ X.XXX,XX)
+  - Forma de pagamento
+  - Separadores ━━━ para visual mais limpo
+  - Link do Google Maps e Instagram no rodapé
 
 ### Observações na nota de impressão
 - **Status:** ✅ Feito (2026-04-08)
-- **Descrição:** Incluir o campo `observacoes` da OS na impressão da nota (função
-  `imprimirNota` / `formatarNotaTermica` em `printHelpers.ts`). Atualmente o campo
-  existe no modelo mas não aparece na nota impressa.
+- **Descrição:** Campo `observacoes` da OS incluído na impressão da nota.
+  Adicionada seção `OBSERVACOES` em `formatarNotaTermica` (`printHelpers.ts`).
 
 ### Enviar foto no WhatsApp de criação da OS
+- **Status:** ✅ Feito (2026-04-09)
+- **Descrição:** WhatsApp de criação da OS (`enviar-os-criada`) envia a foto se disponível.
+- **Solução:** Lê o arquivo diretamente do disco e codifica em base64 — sem depender de URL pública.
+  Se o envio da imagem falhar, cai no fallback de envio de texto.
+- **Validado em produção:** 2026-04-09 — mensagem recebida com sucesso.
+
+---
+
+## PRIORIDADE 3 — Infra / Deploy
+
+### Integração WhatsApp Z-API
+- **Status:** ✅ Estável (2026-04-09)
+- **Descrição:** Migração de Twilio para Z-API concluída. Instância conectada, assinatura PAGA.
+- **Problema encontrado:** Assinatura Z-API havia expirado em produção, causando erro 400
+  `"To continue sending a message, you must subscribe to this instance again"` nos logs.
+  Após renovação da assinatura, envios de texto e imagem funcionam normalmente.
+- **Variáveis de ambiente (Railway):**
+  - `ZAPI_INSTANCE_ID`, `ZAPI_TOKEN`, `ZAPI_CLIENT_TOKEN`
+
+### Migrations aplicadas em produção
 - **Status:** ✅ Feito (2026-04-08)
-- **Descrição:** Quando a OS é criada e o WhatsApp de confirmação é enviado (`enviar-os-criada`),
-  incluir a foto da OS se ela estiver disponível. O backend já tenta mas cai no fallback
-  "URL não pública". Precisa gerar URL pública do Railway corretamente.
-- **Detalhes backend:** `whatsapp/views.py` → `enviar_os_criada` — verificar
-  `RAILWAY_PUBLIC_DOMAIN` e montar URL corretamente.
+- **Detalhes:**
+  - `faturamento/0002` — campos `tipo` e `criado_por` em `SaidaCaixa`
+  - `faturamento/0003` — verbose_name e BigAutoField
+  - `ordens_servico/0012` — `prazo_entrega` para DateTimeField, remoção de `ItemOrdemServico`
 
 ---
 
@@ -69,12 +92,13 @@
 
 | Item | Área | Status |
 |---|---|---|
-| Bug: pendurar conta | Débitos / Kanban | ❌ Pendente |
+| Bug: pendurar conta | Débitos / Kanban | ✅ Feito |
 | Caixa para funcionário | Caixa / Permissões | ✅ Feito |
-| Cancelar OS com motivo | OS / Kanban | ❌ Pendente |
-| Endereço na mensagem final | WhatsApp | ❌ Aguardando endereço |
-| Reformatar nota final | WhatsApp | ❌ Pendente |
-| Observações na impressão | Impressão | ❌ Pendente |
-| Foto no WhatsApp de criação | WhatsApp | ❌ Pendente |
+| Cancelar OS com motivo | OS / Kanban | ✅ Feito |
+| Endereço na mensagem final | WhatsApp | ✅ Feito |
+| Reformatar nota final | WhatsApp | ✅ Feito |
+| Observações na impressão | Impressão | ✅ Feito |
+| Foto no WhatsApp de criação | WhatsApp | ✅ Feito |
+| Z-API estável em produção | Infra | ✅ Feito |
 
-**Total: 6 feitos / 1 pendente (aguardando endereço da loja)**
+**Total: 8 feitos / 0 pendentes — backlog maio concluído ✅**
