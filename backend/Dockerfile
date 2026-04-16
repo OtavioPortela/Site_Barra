@@ -28,5 +28,5 @@ RUN mkdir -p /app/staticfiles
 # Expor porta 8000
 EXPOSE 8000
 
-# Comando padrão (será sobrescrito no docker-compose ou Railway)
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "core.wsgi:application"]
+# Entrypoint garante que migrations rodem antes de subir o servidor
+ENTRYPOINT ["/app/entrypoint.sh"]

@@ -41,7 +41,6 @@ echo "PostgreSQL iniciado!"
 
 # Executar migrações
 echo "Executando migrações..."
-python manage.py makemigrations --noinput || true
 python manage.py migrate --noinput
 
 # Coletar arquivos estáticos

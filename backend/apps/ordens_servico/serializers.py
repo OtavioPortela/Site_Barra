@@ -24,7 +24,8 @@ class ClienteSerializer(serializers.ModelSerializer):
 
     def validate_cnpj_cpf(self, value):
         """Validação básica de CNPJ/CPF."""
-        # Remove caracteres não numéricos
+        if not value:
+            return value
         cnpj_cpf_limpo = ''.join(filter(str.isdigit, value))
         if len(cnpj_cpf_limpo) not in [11, 14]:
             raise serializers.ValidationError("CNPJ/CPF deve ter 11 (CPF) ou 14 (CNPJ) dígitos.")
