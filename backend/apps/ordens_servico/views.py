@@ -39,6 +39,7 @@ class ClienteViewSet(viewsets.ModelViewSet):
     search_fields = ['nome', 'cnpj_cpf', 'email']
     ordering_fields = ['nome', 'data_cadastro']
     ordering = ['-data_cadastro']
+    pagination_class = None
 
     def perform_destroy(self, instance):
         """Soft delete - apenas marca como inativo."""
