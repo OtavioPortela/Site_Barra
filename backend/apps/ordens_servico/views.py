@@ -26,7 +26,7 @@ from .serializers import (
     CorCabeloSerializer,
     CorLinhaSerializer
 )
-from .permissions import IsOwnerOrReadOnly, CanFinalizeOS
+from .permissions import IsOwnerOrReadOnly, CanFinalizeOS, IsStaffOrReadOnly
 
 
 class ClienteViewSet(viewsets.ModelViewSet):
@@ -71,17 +71,23 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         """Filtra queryset baseado em parâmetros de data."""
         queryset = super().get_queryset()
 
-        # Filtro por faturada (só aplicar se explicitamente solicitado no histórico)
         faturada_filter = self.request.query_params.get('faturada')
         historico = self.request.query_params.get('historico')
+        canceladas = self.request.query_params.get('canceladas')
+
+        if canceladas:
+            # Aba de canceladas — retorna apenas canceladas
+            return queryset.filter(status='cancelada')
+
+        # Em todos os outros contextos, excluir canceladas
+        queryset = queryset.exclude(status='cancelada')
 
         if historico:
-            # Se for histórico, aplicar filtro de faturada se solicitado
             if faturada_filter is not None:
                 faturada_bool = faturada_filter.lower() == 'true'
                 queryset = queryset.filter(faturada=faturada_bool)
         else:
-            # Se não for histórico (dashboard), SEMPRE excluir faturadas
+            # Dashboard: excluir faturadas
             queryset = queryset.filter(faturada=False)
 
         # Filtro por status
@@ -126,13 +132,16 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         serializer.save(usuario_criacao=self.request.user, numero=numero)
 
     def destroy(self, request, *args, **kwargs):
-        """Exclusão de OS restrita a administradores."""
+        """Soft delete — marca OS como cancelada. Restrito a administradores."""
         if not request.user.is_staff:
             return Response(
-                {'error': 'Apenas administradores podem excluir ordens de serviço.'},
+                {'error': 'Apenas administradores podem cancelar ordens de serviço.'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        return super().destroy(request, *args, **kwargs)
+        instance = self.get_object()
+        instance.status = 'cancelada'
+        instance.save(update_fields=['status'])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['get'], url_path='gerar-numero')
     def gerar_numero(self, request):
@@ -378,7 +387,7 @@ class EstadoCabeloViewSet(viewsets.ModelViewSet):
     """ViewSet para gerenciamento de estados do cabelo."""
     queryset = EstadoCabelo.objects.all().order_by('ordem', 'nome')
     serializer_class = EstadoCabeloSerializer
-    permission_classes = [IsAuthenticated, IsStaffOnly]
+    permission_classes = [IsAuthenticated, IsStaffOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['ativo']
     search_fields = ['nome', 'valor']
@@ -391,7 +400,7 @@ class TipoCabeloViewSet(viewsets.ModelViewSet):
     """ViewSet para gerenciamento de tipos de cabelo."""
     queryset = TipoCabelo.objects.all().order_by('ordem', 'nome')
     serializer_class = TipoCabeloSerializer
-    permission_classes = [IsAuthenticated, IsStaffOnly]
+    permission_classes = [IsAuthenticated, IsStaffOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['ativo']
     search_fields = ['nome', 'valor']
@@ -404,7 +413,7 @@ class CorCabeloViewSet(viewsets.ModelViewSet):
     """ViewSet para gerenciamento de cores do cabelo."""
     queryset = CorCabelo.objects.all().order_by('ordem', 'nome')
     serializer_class = CorCabeloSerializer
-    permission_classes = [IsAuthenticated, IsStaffOnly]
+    permission_classes = [IsAuthenticated, IsStaffOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['ativo']
     search_fields = ['nome']
@@ -417,7 +426,7 @@ class CorLinhaViewSet(viewsets.ModelViewSet):
     """ViewSet para gerenciamento de cores da linha."""
     queryset = CorLinha.objects.all().order_by('ordem', 'nome')
     serializer_class = CorLinhaSerializer
-    permission_classes = [IsAuthenticated, IsStaffOnly]
+    permission_classes = [IsAuthenticated, IsStaffOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['ativo']
     search_fields = ['nome']
@@ -438,20 +447,26 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
-        """Retorna apenas OS de clientes parceiros sem forma de pagamento."""
+        """Retorna OS de clientes parceiros. Para actions de detalhe, inclui pagas também."""
+        # Para marcar-pago/reverter-pagamento, o objeto precisa ser encontrado independente do pagamento
+        if self.action in ('marcar_pago', 'reverter_pagamento'):
+            return OrdemServico.objects.filter(
+                cliente__eh_parceiro=True
+            ).select_related('cliente', 'servico')
+
+        # Listagem: apenas OS sem pagamento (débitos pendentes)
         queryset = OrdemServico.objects.filter(
             cliente__eh_parceiro=True,
             forma_pagamento__isnull=True
         ).select_related('cliente', 'servico')
 
-        # Filtro por parceiro_id
         parceiro_id = self.request.query_params.get('parceiro_id')
         if parceiro_id:
             queryset = queryset.filter(cliente_id=parceiro_id)
 
         return queryset
 
-    @action(detail=True, methods=['patch'])
+    @action(detail=True, methods=['patch'], url_path='marcar-pago')
     def marcar_pago(self, request, pk=None):
         """Marca um débito como pago, atualizando a forma de pagamento."""
         debito = self.get_object()
@@ -475,7 +490,7 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(debito)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['patch'])
+    @action(detail=True, methods=['patch'], url_path='reverter-pagamento')
     def reverter_pagamento(self, request, pk=None):
         """Remove a forma de pagamento, revertendo o débito para pendente."""
         if not request.user.is_staff:

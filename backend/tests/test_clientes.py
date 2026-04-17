@@ -30,13 +30,18 @@ class ClienteListCreateTest(TestCase):
         self.usuario = criar_usuario()
         autenticar(self.client)
 
+    def _resultados(self, response):
+        data = response.data
+        if isinstance(data, list):
+            return data
+        return data.get('results', data)
+
     def test_listar_clientes_autenticado(self):
         criar_cliente(nome='Ana')
         criar_cliente(nome='Bruno')
         response = self.client.get('/api/clientes/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # A API retorna paginado: {'count': N, 'results': [...]}
-        resultados = response.data.get('results', response.data)
+        resultados = self._resultados(response)
         self.assertEqual(len(resultados), 2)
 
     def test_listar_apenas_clientes_ativos(self):
@@ -46,7 +51,7 @@ class ClienteListCreateTest(TestCase):
         cliente_inativo.save()
         response = self.client.get('/api/clientes/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        resultados = response.data.get('results', response.data)
+        resultados = self._resultados(response)
         nomes = [c['nome'] for c in resultados]
         self.assertIn('Ativo', nomes)
         self.assertNotIn('Inativo', nomes)
@@ -86,7 +91,7 @@ class ClienteListCreateTest(TestCase):
         criar_cliente(nome='João Souza')
         response = self.client.get('/api/clientes/?search=Maria')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        resultados = response.data.get('results', response.data)
+        resultados = self._resultados(response)
         self.assertEqual(len(resultados), 1)
         self.assertEqual(resultados[0]['nome'], 'Maria Silva')
 

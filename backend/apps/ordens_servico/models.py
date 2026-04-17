@@ -33,6 +33,7 @@ class OrdemServico(models.Model):
         ('pendente', 'Pendente'),
         ('em_desenvolvimento', 'Em Desenvolvimento'),
         ('finalizada', 'Finalizada'),
+        ('cancelada', 'Cancelada'),
     ]
 
     TIPO_CABELO_CHOICES = [

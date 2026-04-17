@@ -1,6 +1,18 @@
 from rest_framework import permissions
 
 
+class IsStaffOrReadOnly(permissions.BasePermission):
+    """
+    Leitura liberada para qualquer autenticado.
+    Escrita (POST, PUT, PATCH, DELETE) restrita a is_staff.
+    """
+
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return request.user and request.user.is_authenticated
+        return request.user and request.user.is_authenticated and request.user.is_staff
+
+
 class IsOwnerOrReadOnly(permissions.BasePermission):
     """
     Permissão customizada que permite apenas ao criador da OS editá-la,

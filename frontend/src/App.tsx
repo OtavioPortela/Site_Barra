@@ -112,11 +112,11 @@ function AppRoutes() {
       <Route
         path="/debitos"
         element={
-          <ProtectedRoute>
+          <ProtectedRoutePatrao>
             <AppLayout>
               <Debitos />
             </AppLayout>
-          </ProtectedRoute>
+          </ProtectedRoutePatrao>
         }
       />
       <Route

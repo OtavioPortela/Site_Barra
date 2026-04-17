@@ -39,6 +39,7 @@ def dashboard_view(request):
             os_finalizadas = os_finalizadas.filter(data_finalizacao__date__gte=data_inicio)
         except (ValueError, AttributeError) as e:
             logger.warning(f"data_inicio inválida ignorada: '{request.query_params.get('data_inicio')}' — {e}")
+            data_inicio = None
 
     if data_fim:
         try:
@@ -50,6 +51,7 @@ def dashboard_view(request):
             os_finalizadas = os_finalizadas.filter(data_finalizacao__date__lte=data_fim)
         except (ValueError, AttributeError) as e:
             logger.warning(f"data_fim inválida ignorada: '{request.query_params.get('data_fim')}' — {e}")
+            data_fim = None
 
     if cliente_param:
         # Filtrar por nome do cliente (string)

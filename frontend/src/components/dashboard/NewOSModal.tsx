@@ -68,15 +68,6 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
     }
   }, [isOpen]);
 
-  // Auto-calcular valor total quando tamanho ou valor_metro mudar
-  useEffect(() => {
-    const tamanho = parseFloat(formData.tamanho_cabelo_cm);
-    const valorMetro = parseFloat(formData.valor_metro);
-    if (tamanho > 0 && valorMetro > 0) {
-      const total = (tamanho / 100) * valorMetro;
-      setFormData(prev => ({ ...prev, valor: total.toFixed(2) }));
-    }
-  }, [formData.tamanho_cabelo_cm, formData.valor_metro]);
 
   const loadClientes = async () => {
     try {

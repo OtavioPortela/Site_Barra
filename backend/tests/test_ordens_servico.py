@@ -235,6 +235,66 @@ class GerarNumeroOSTest(TestCase):
         response = self.client.get('/api/ordens-servico/gerar-numero/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         numero = response.data['numero']
-        # Deve ser maior que 5
         num = int(numero.split('-')[-1])
         self.assertGreater(num, 5)
+
+
+class CancelarOSTest(TestCase):
+    """Testa o soft delete — destroy deve marcar status como 'cancelada'."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = criar_usuario(email='admin@barra.com', is_staff=True)
+        self.funcionario = criar_usuario(email='func@barra.com', is_staff=False)
+        self.cliente = criar_cliente()
+        self.servico = criar_servico()
+        self.os = criar_os(self.admin, self.cliente, self.servico, numero='OS-CANCEL')
+
+    def _auth(self, email):
+        autenticar(self.client, email=email)
+
+    def test_cancelar_os_admin_marca_status_cancelada(self):
+        self._auth('admin@barra.com')
+        response = self.client.delete(f'/api/ordens-servico/{self.os.id}/')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.os.refresh_from_db()
+        self.assertEqual(self.os.status, 'cancelada')
+        # Registro ainda existe no banco
+        self.assertTrue(OrdemServico.objects.filter(id=self.os.id).exists())
+
+    def test_cancelar_os_funcionario_negado(self):
+        self._auth('func@barra.com')
+        response = self.client.delete(f'/api/ordens-servico/{self.os.id}/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.os.refresh_from_db()
+        self.assertNotEqual(self.os.status, 'cancelada')
+
+    def test_canceladas_excluidas_do_dashboard(self):
+        self._auth('admin@barra.com')
+        os_normal = criar_os(self.admin, self.cliente, self.servico, numero='OS-NORM')
+        os_cancelada = criar_os(self.admin, self.cliente, self.servico, numero='OS-CAN2', status='cancelada')
+        response = self.client.get('/api/ordens-servico/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        numeros = [o['numero'] for o in response.data]
+        self.assertIn('OS-NORM', numeros)
+        self.assertNotIn('OS-CAN2', numeros)
+
+    def test_canceladas_excluidas_do_historico(self):
+        self._auth('admin@barra.com')
+        os_normal = criar_os(self.admin, self.cliente, self.servico, numero='OS-HIST', faturada=True)
+        os_cancelada = criar_os(self.admin, self.cliente, self.servico, numero='OS-CANHIST', status='cancelada')
+        response = self.client.get('/api/ordens-servico/?historico=true')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        numeros = [o['numero'] for o in response.data]
+        self.assertIn('OS-HIST', numeros)
+        self.assertNotIn('OS-CANHIST', numeros)
+
+    def test_endpoint_canceladas_retorna_apenas_canceladas(self):
+        self._auth('admin@barra.com')
+        criar_os(self.admin, self.cliente, self.servico, numero='OS-ATIVA')
+        criar_os(self.admin, self.cliente, self.servico, numero='OS-CANX', status='cancelada')
+        response = self.client.get('/api/ordens-servico/?canceladas=true')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        numeros = [o['numero'] for o in response.data]
+        self.assertIn('OS-CANX', numeros)
+        self.assertNotIn('OS-ATIVA', numeros)

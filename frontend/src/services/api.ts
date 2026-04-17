@@ -105,6 +105,8 @@ export const ordemServicoService = {
     data_inicio?: string;
     data_fim?: string;
     search?: string;
+    historico?: string;
+    canceladas?: string;
   }): Promise<OrdemServico[]> => {
     const response = await api.get('/ordens-servico/', { params: filters });
     return response.data;

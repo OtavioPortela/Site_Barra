@@ -7,9 +7,11 @@ import { useAuth } from '../contexts/AuthContext';
 
 export const HistoricoOS = () => {
   const { isPatrao } = useAuth();
+  const [aba, setAba] = useState<'historico' | 'canceladas'>('historico');
   const [ordens, setOrdens] = useState<OrdemServico[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [modalDetalhe, setModalDetalhe] = useState<OrdemServico | null>(null);
   const itemsPerPage = 10;
   const [filters, setFilters] = useState({
     status: '',
@@ -21,13 +23,19 @@ export const HistoricoOS = () => {
 
   useEffect(() => {
     loadOrdens();
-  }, []);
+  }, [aba]);
 
   const loadOrdens = async () => {
     try {
       setLoading(true);
-      const params: any = { historico: 'true' };
 
+      if (aba === 'canceladas') {
+        const data = await ordemServicoService.getAll({ canceladas: 'true' });
+        setOrdens(data);
+        return;
+      }
+
+      const params: any = { historico: 'true' };
       if (filters.status) params.status = filters.status;
       if (filters.faturada !== '') params.faturada = filters.faturada;
       if (filters.data_inicio) params.data_inicio = filters.data_inicio;
@@ -37,7 +45,7 @@ export const HistoricoOS = () => {
       const data = await ordemServicoService.getAll(Object.keys(params).length > 0 ? params : undefined);
       setOrdens(data);
     } catch (error: any) {
-      toast.error('Erro ao carregar histórico de ordens de serviço');
+      toast.error('Erro ao carregar ordens de serviço');
       console.error(error);
       setOrdens([]);
     } finally {
@@ -107,13 +115,13 @@ export const HistoricoOS = () => {
   };
 
   const handleDelete = async (ordem: OrdemServico) => {
-    if (!window.confirm(`Excluir OS #${ordem.numero} (${ordem.cliente})? Esta ação não pode ser desfeita.`)) return;
+    if (!window.confirm(`Cancelar OS #${ordem.numero} (${ordem.cliente})? Ela ficará visível na aba Canceladas.`)) return;
     try {
       await ordemServicoService.delete(ordem.id);
-      toast.success(`OS #${ordem.numero} excluída com sucesso`);
+      toast.success(`OS #${ordem.numero} cancelada`);
       setOrdens(prev => prev.filter(o => o.id !== ordem.id));
     } catch (error: any) {
-      toast.error('Erro ao excluir ordem de serviço');
+      toast.error('Erro ao cancelar ordem de serviço');
     }
   };
 
@@ -147,24 +155,161 @@ export const HistoricoOS = () => {
 
   return (
     <div className="p-4 sm:p-6">
+      {/* Modal detalhes da OS */}
+      {modalDetalhe && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setModalDetalhe(null)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-200">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-gray-900">OS #{modalDetalhe.numero}</h2>
+                  <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(modalDetalhe.status)}`}>
+                    {getStatusLabel(modalDetalhe.status)}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 mt-0.5">{modalDetalhe.cliente}</p>
+              </div>
+              <button onClick={() => setModalDetalhe(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+
+            {/* Body */}
+            <div className="overflow-y-auto p-5 space-y-5">
+              {/* Valores e datas */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Geral</p>
+                <div className="space-y-2">
+                  {[
+                    { label: 'Valor',            value: formatCurrency(modalDetalhe.valor) },
+                    { label: 'Criação',          value: formatDate(modalDetalhe.data_criacao) },
+                    { label: 'Finalização',      value: modalDetalhe.data_finalizacao ? formatDate(modalDetalhe.data_finalizacao) : null },
+                    { label: 'Serviço',          value: modalDetalhe.servico },
+                    { label: 'Forma de Pagamento', value: modalDetalhe.forma_pagamento === 'dinheiro' ? 'Dinheiro' :
+                                                          modalDetalhe.forma_pagamento === 'pix' ? 'PIX' :
+                                                          modalDetalhe.forma_pagamento === 'cartao_credito' ? 'Cartão de Crédito' :
+                                                          modalDetalhe.forma_pagamento === 'cartao_debito' ? 'Cartão de Débito' : null },
+                    { label: 'Criado por',       value: modalDetalhe.usuario_criacao_nome },
+                  ].filter(f => f.value).map(f => (
+                    <div key={f.label} className="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0">
+                      <span className="text-sm text-gray-500">{f.label}</span>
+                      <span className="text-sm font-semibold text-gray-800">{f.value}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                    <span className="text-sm text-gray-500">Faturada</span>
+                    <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${modalDetalhe.faturada ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                      {modalDetalhe.faturada ? 'Sim' : 'Não'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0">
+                    <span className="text-sm text-gray-500">Entregue</span>
+                    <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${modalDetalhe.entregue ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                      {modalDetalhe.entregue ? 'Sim' : 'Não'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cabelo */}
+              {(modalDetalhe.estado_cabelo || modalDetalhe.tipo_cabelo || modalDetalhe.cor_cabelo ||
+                modalDetalhe.cor_linha || modalDetalhe.tamanho_cabelo_cm != null || modalDetalhe.peso_gramas != null) && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Cabelo</p>
+                  <div className="space-y-2">
+                    {[
+                      { label: 'Estado',   value: modalDetalhe.estado_cabelo },
+                      { label: 'Tipo',     value: modalDetalhe.tipo_cabelo },
+                      { label: 'Cor',      value: modalDetalhe.cor_cabelo },
+                      { label: 'Cor da Linha', value: modalDetalhe.cor_linha },
+                      { label: 'Tamanho',  value: modalDetalhe.tamanho_cabelo_cm != null ? `${modalDetalhe.tamanho_cabelo_cm} cm` : null },
+                      { label: 'Peso',     value: modalDetalhe.peso_gramas != null ? `${modalDetalhe.peso_gramas} g` : null },
+                      { label: 'Valor/metro', value: modalDetalhe.valor_metro != null ? formatCurrency(modalDetalhe.valor_metro) : null },
+                    ].filter(f => f.value).map(f => (
+                      <div key={f.label} className="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0">
+                        <span className="text-sm text-gray-500">{f.label}</span>
+                        <span className="text-sm font-semibold text-gray-800">{f.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Descrição do pedido */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Detalhes do Pedido</p>
+                <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 min-h-10">
+                  {modalDetalhe.descricao || <span className="text-gray-400 italic">Sem descrição</span>}
+                </p>
+              </div>
+
+              {/* Observações */}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Observações</p>
+                <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 min-h-10">
+                  {modalDetalhe.observacoes || <span className="text-gray-400 italic">Sem observações</span>}
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 pb-5 pt-3 border-t border-gray-100">
+              <button onClick={() => setModalDetalhe(null)} className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-4 sm:mb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Histórico de Ordens de Serviço</h1>
             <p className="text-sm sm:text-base text-gray-600 mt-1">Visualize e exporte todo o histórico de OS</p>
           </div>
+          {aba === 'historico' && (
+            <button
+              onClick={handleExportExcel}
+              className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center space-x-2 text-sm sm:text-base"
+            >
+              <span>📊</span>
+              <span>Exportar Excel</span>
+            </button>
+          )}
+        </div>
+
+        {/* Abas */}
+        <div className="flex border-b border-gray-200">
           <button
-            onClick={handleExportExcel}
-            className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center space-x-2 text-sm sm:text-base"
+            onClick={() => { setAba('historico'); setCurrentPage(1); }}
+            className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              aba === 'historico'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
           >
-            <span>📊</span>
-            <span>Exportar Excel</span>
+            Histórico
+          </button>
+          <button
+            onClick={() => { setAba('canceladas'); setCurrentPage(1); }}
+            className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              aba === 'canceladas'
+                ? 'border-red-500 text-red-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Canceladas
           </button>
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+      {/* Filtros — só no histórico */}
+      {aba === 'canceladas' && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-6 text-sm text-red-700">
+          Ordens de serviço canceladas são somente leitura e não podem ser reativadas por aqui.
+        </div>
+      )}
+      <div className={`bg-white rounded-lg shadow-md p-4 mb-6 ${aba === 'canceladas' ? 'hidden' : ''}`}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
           <div className="sm:col-span-2 lg:col-span-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -269,16 +414,26 @@ export const HistoricoOS = () => {
                   <span className="text-xs text-gray-500">{formatDate(ordem.data_criacao)}</span>
                 </div>
 
-                {isPatrao() && (
-                  <div className="mt-3 pt-3 border-t border-gray-100">
+                <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2">
+                  <button
+                    onClick={() => setModalDetalhe(ordem)}
+                    className="flex-1 py-1.5 text-sm font-medium text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Detalhes
+                  </button>
+                  {isPatrao() && aba === 'historico' && (
                     <button
                       onClick={() => handleDelete(ordem)}
-                      className="w-full py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                      className="flex-1 py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
                     >
-                      Excluir OS
+                      Cancelar OS
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-gray-100">
                   <div className="flex items-center space-x-1">
                     <span className="text-xs text-gray-500">Faturada:</span>
@@ -348,7 +503,10 @@ export const HistoricoOS = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Valor
                 </th>
-                {isPatrao() && (
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Detalhes
+                </th>
+                {isPatrao() && aba === 'historico' && (
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Ações
                   </th>
@@ -407,13 +565,25 @@ export const HistoricoOS = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-primary-600">
                     {formatCurrency(ordem.valor)}
                   </td>
-                  {isPatrao() && (
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <button
+                      onClick={() => setModalDetalhe(ordem)}
+                      title="Ver detalhes"
+                      className="text-gray-400 hover:text-blue-600 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </button>
+                  </td>
+                  {isPatrao() && aba === 'historico' && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button
                         onClick={() => handleDelete(ordem)}
                         className="text-red-600 hover:text-red-800 font-medium transition-colors"
                       >
-                        Excluir
+                        Cancelar
                       </button>
                     </td>
                   )}
