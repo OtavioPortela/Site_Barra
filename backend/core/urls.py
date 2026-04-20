@@ -2,9 +2,10 @@
 URL configuration for barra_confeccoes project.
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.static import serve
 from django.http import JsonResponse
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
@@ -42,8 +43,8 @@ urlpatterns = [
     path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]
 
-# Servir arquivos estáticos e media (em produção media é necessário para WhatsApp)
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve media independente de DEBUG (necessário com DEBUG=False no Railway)
+urlpatterns += [re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT})]
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 

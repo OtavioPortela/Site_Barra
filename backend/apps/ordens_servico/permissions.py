@@ -25,6 +25,10 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
+        # Patrão (staff) pode editar qualquer OS
+        if request.user and request.user.is_staff:
+            return True
+
         # Se for atualização de status via action, permitir para qualquer usuário autenticado
         if hasattr(view, 'action') and view.action == 'update_status':
             return True
