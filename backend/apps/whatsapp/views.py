@@ -363,8 +363,9 @@ Data de Entrega: {prazo_entrega}
 *Serviço:* {ordem_servico.servico.nome if ordem_servico.servico else '-'}
 *Valor por metro:* R$ {valor_metro}
 
-*Observação:* {ordem_servico.observacoes or '(O cliente está ciente da perda de 20% na quantidade e 7 cm no comprimento.)'}
+*Observação:* {ordem_servico.observacoes or '-'}
 
+_(O cliente está ciente da perda de 20% na quantidade e 7 cm no comprimento.)_
 _Limpeza e mesclagem poderão perder até 40% da quantidade._
 _A Limpeza e mesclagem é somente com autorização da cliente._
 _(qualquer metragem inferior a 1 metro, será cobrado ao valor do metro)_"""
