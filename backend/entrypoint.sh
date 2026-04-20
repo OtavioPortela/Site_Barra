@@ -83,6 +83,10 @@ if [ $# -gt 0 ]; then
     # Substituir $PORT no comando se existir
     CMD="$@"
     CMD=$(echo "$CMD" | sed "s/\$PORT/$PORT_VALUE/g")
+    # Injetar --max-requests em comandos gunicorn que ainda não o tenham
+    if echo "$CMD" | grep -q "gunicorn" && ! echo "$CMD" | grep -q "\-\-max-requests"; then
+        CMD=$(echo "$CMD" | sed 's/gunicorn/gunicorn --max-requests 1000 --max-requests-jitter 100/')
+    fi
     echo "Executando: $CMD"
     exec bash -c "$CMD"
 else
