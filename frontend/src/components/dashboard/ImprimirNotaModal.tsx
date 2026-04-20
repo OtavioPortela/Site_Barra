@@ -185,8 +185,8 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
             {apenasVisualizar
               ? `Abaixo está a nota fiscal que foi impressa quando a OS foi entregue.`
               : apenasImprimir
-              ? `Deseja emitir a NFC-e (Nota Fiscal de Consumidor Eletrônica) da OS <strong>#{ordem.numero}</strong>?`
-              : `Deseja imprimir a nota fiscal da OS <strong>#{ordem.numero}</strong>?`}
+              ? <>Deseja emitir a NFC-e (Nota Fiscal de Consumidor Eletrônica) da OS <strong>#{ordem?.numero}</strong>?</>
+              : <>Deseja imprimir a nota fiscal da OS <strong>#{ordem?.numero}</strong>?</>}
           </p>
 
           {loadingOrdem ? (
