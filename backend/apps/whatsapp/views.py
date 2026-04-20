@@ -365,7 +365,7 @@ Data de Entrega: {prazo_entrega}
 
 *Observação:* {ordem_servico.observacoes or '(O cliente está ciente da perda de 20% na quantidade e 7 cm no comprimento.)'}
 
-_Limpeza e mesclagem poderão perder até 40% da quantidade._
+_Limpeza e mesclagem poderão perder até 20% da quantidade._
 _A Limpeza e mesclagem é somente com autorização da cliente._
 _(qualquer metragem inferior a 1 metro, será cobrado ao valor do metro)_"""
 
