@@ -94,6 +94,8 @@ else
         --workers 3 \
         --timeout 120 \
         --keep-alive 5 \
+        --max-requests 1000 \
+        --max-requests-jitter 100 \
         --access-logfile - \
         --error-logfile - \
         --log-level info \

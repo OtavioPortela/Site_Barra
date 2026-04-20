@@ -107,6 +107,7 @@ if DATABASE_URL:
                 'PASSWORD': db_match.group(2),
                 'HOST': db_match.group(3),
                 'PORT': db_match.group(4),
+                'CONN_MAX_AGE': 60,
             }
         }
     else:
@@ -119,6 +120,7 @@ if DATABASE_URL:
                 'PASSWORD': config('PGPASSWORD', default=config('DATABASE_PASSWORD', default='postgres')),
                 'HOST': config('PGHOST', default=config('DATABASE_HOST', default='db')),
                 'PORT': config('PGPORT', default=config('DATABASE_PORT', default='5432')),
+                'CONN_MAX_AGE': 60,
             }
         }
 else:
@@ -131,6 +133,7 @@ else:
             'PASSWORD': config('PGPASSWORD', default=config('DATABASE_PASSWORD', default='postgres')),
             'HOST': config('PGHOST', default=config('DATABASE_HOST', default='db')),
             'PORT': config('PGPORT', default=config('DATABASE_PORT', default='5432')),
+            'CONN_MAX_AGE': 60,
         }
     }
 

@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers as drf_serializers, status, viewsets
 from rest_framework.viewsets import ModelViewSet
 from django.db.models import Sum, Count, Q, Avg
+from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from datetime import datetime, timedelta, date
 from apps.ordens_servico.models import OrdemServico
@@ -76,36 +77,38 @@ def dashboard_view(request):
     # Ticket médio
     ticket_medio = os_finalizadas.aggregate(Avg('valor'))['valor__avg'] or 0
 
-    # Faturamento por período (últimos 12 meses)
-    faturamento_por_periodo = []
+    # Faturamento por período (últimos 12 meses) — query única com TruncMonth
     hoje = timezone.now().date()
+    mes_atual = hoje.replace(day=1)
+    ano_inicio = mes_atual.year
+    mes_inicio = mes_atual.month - 11
+    if mes_inicio <= 0:
+        mes_inicio += 12
+        ano_inicio -= 1
+    data_inicio_12m = date(ano_inicio, mes_inicio, 1)
 
-    for i in range(11, -1, -1):  # 11 meses atrás até agora
-        # Calcular data do primeiro dia do mês
-        if hoje.month - i <= 0:
-            ano = hoje.year - 1
-            mes = hoje.month - i + 12
-        else:
-            ano = hoje.year
-            mes = hoje.month - i
+    faturamento_por_mes = {}
+    for row in (
+        os_finalizadas
+        .filter(data_finalizacao__date__gte=data_inicio_12m)
+        .annotate(mes=TruncMonth('data_finalizacao'))
+        .values('mes')
+        .annotate(valor=Sum('valor'))
+    ):
+        if row['mes']:
+            faturamento_por_mes[row['mes'].strftime('%Y-%m')] = row['valor']
 
-        data_inicio_periodo = date(ano, mes, 1)
-
-        # Calcular último dia do mês
-        if mes == 12:
-            data_fim_periodo = date(ano + 1, 1, 1) - timedelta(days=1)
-        else:
-            data_fim_periodo = date(ano, mes + 1, 1) - timedelta(days=1)
-
-        os_periodo = os_finalizadas.filter(
-            data_finalizacao__date__gte=data_inicio_periodo,
-            data_finalizacao__date__lte=data_fim_periodo
-        )
-        valor_periodo = os_periodo.aggregate(Sum('valor'))['valor__sum'] or 0
-
+    faturamento_por_periodo = []
+    for i in range(11, -1, -1):
+        ano = mes_atual.year
+        mes = mes_atual.month - i
+        if mes <= 0:
+            mes += 12
+            ano -= 1
+        key = f'{ano:04d}-{mes:02d}'
         faturamento_por_periodo.append({
-            'periodo': data_inicio_periodo.strftime('%Y-%m'),
-            'valor': float(valor_periodo)
+            'periodo': key,
+            'valor': float(faturamento_por_mes.get(key, 0) or 0)
         })
 
     # Distribuição por status (apenas OS não faturadas)
@@ -134,7 +137,7 @@ def dashboard_view(request):
     ]
 
     # OS finalizadas (para tabela)
-    ordens_finalizadas = os_finalizadas.order_by('-data_finalizacao')[:50]
+    ordens_finalizadas = os_finalizadas.select_related('cliente', 'servico').order_by('-data_finalizacao')[:50]
     serializer = OrdemServicoListSerializer(ordens_finalizadas, many=True)
 
     # Saídas de caixa (apenas tipo='saida' impacta o lucro)
