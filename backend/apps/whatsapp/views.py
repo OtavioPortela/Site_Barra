@@ -150,23 +150,23 @@ def enviar_nota_os(request):
     nome_cliente = ordem_servico.cliente.nome if ordem_servico.cliente else 'Cliente'
 
     mensagem = (
-        f"Olá, *{nome_cliente}*! 🎉\n\n"
-        f"Seu pedido *#{ordem_servico.numero}* está pronto!\n\n"
+        f"Olá, {nome_cliente}! 🎉\n\n"
+        f"Seu pedido #{ordem_servico.numero} está pronto!\n\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"📋 *Detalhes do pedido*\n"
+        f"📋 Detalhes do pedido\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"• Serviço: {servico_nome}\n"
-        f"• Valor: *{valor_formatado}*\n"
-        f"• Pagamento: {forma_pgto}\n\n"
-        f"📍 *Venha nos buscar!*\n"
-        f"R. Curitiba, 705 - Centro, Belo Horizonte - MG\n\n"
+        f"* Serviço: {servico_nome}\n"
+        f"* Valor: {valor_formatado}\n"
+        f"* Pagamento: {forma_pgto}\n\n"
+        f"📍 Venha retirar seu pedido!\n"
+        f" R. Curitiba, 705 - Sala 403 | 4º andar - 30170-120 - BH | MG\n\n"
         f"Obrigado pela preferência! 🙏\n\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"💬 *Ajude-nos a melhorar!*\n"
+        f"💬 Ajude-nos a melhorar!\n"
         f"Avalie no Google Maps:\n"
         f"https://www.google.com/maps/place/Barra+confec%C3%A7%C3%B5es/data=!4m2!3m1!1s0x0:0x867cefdc13357c1d?sa=X&ved=1t:2428&ictx=111\n\n"
         f"📱 Siga no Instagram:\n"
-        f"https://www.instagram.com/barraconfeccoes?igsh=MWprYml1aGx0b3duMg=="
+        f"https://www.instagram.com/barraconfeccoes?igsh=N3p4ZXloeWI5OWdv no Instagram, deixe uma curtida e um comentário, sua interação é fundamental para nosso crescimento!"
     )
 
     try:
