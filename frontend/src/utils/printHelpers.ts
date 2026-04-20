@@ -57,45 +57,45 @@ export const formatarNotaTermica = (ordem: OrdemServico, _formaPagamentoOverride
     : 'A definir';
 
   const observacoesSection = ordem.observacoes
-    ? `${'='.repeat(48)}
+    ? `${'_'.repeat(48)}
           OBSERVACOES
-${'='.repeat(48)}
+${'_'.repeat(48)}
 ${ordem.observacoes}
 `
     : '';
 
-  return `${'='.repeat(48)}
+  return `${'_'.repeat(48)}
           ${razaoSocial}
           ${nomeFantasia}
 CNPJ: ${cnpj}
-${'='.repeat(48)}
+${'_'.repeat(48)}
         ORDEM DE SERVICO - OS
-${'='.repeat(48)}
+${'_'.repeat(48)}
 Numero: ${ordem.numero}
 Data de Criacao: ${dataCriacao}
 Prazo de Entrega: ${prazoEntrega}
 Status: ${statusLabel}
-${'='.repeat(48)}
+${'_'.repeat(48)}
            DADOS DO CLIENTE
-${'='.repeat(48)}
+${'_'.repeat(48)}
 Cliente: ${ordem.cliente || 'CONSUMIDOR NÃO IDENTIFICADO'}
 Telefone: ${ordem.cliente_telefone || '-'}
-${'='.repeat(48)}
+${'_'.repeat(48)}
           DETALHES DO SERVICO
-${'='.repeat(48)}
+${'_'.repeat(48)}
 Servico: ${ordem.servico || '-'}
-${'='.repeat(48)}
+${'_'.repeat(48)}
             VALORES
-${'='.repeat(48)}
+${'_'.repeat(48)}
 VALOR TOTAL: R$ ${valorTotal}
 Forma de Pagamento: ${formaPgto}
-${'='.repeat(48)}
+${'_'.repeat(48)}
 ${observacoesSection}       INFORMACOES ADICIONAIS
-${'='.repeat(48)}
+${'_'.repeat(48)}
 Criado por: ${ordem.usuario_criacao_nome || '-'}
-${'='.repeat(48)}
+${'_'.repeat(48)}
            Obrigado pela preferencia!
-${'='.repeat(48)}`;
+${'_'.repeat(48)}`;
 };
 
 export const imprimirNota = (ordem: OrdemServico, formaPagamentoOverride?: string) => {
