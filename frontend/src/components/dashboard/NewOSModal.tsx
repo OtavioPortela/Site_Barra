@@ -536,10 +536,15 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
 
   if (!isOpen) return null;
 
-  // Data/hora mínima: agora (formato datetime-local: YYYY-MM-DDTHH:MM)
+  // Data/hora mínima: agora em horário de Brasília (formato datetime-local: YYYY-MM-DDTHH:MM)
   const now = new Date();
   now.setSeconds(0, 0);
-  const today = now.toISOString().slice(0, 16);
+  const brFormatter = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+  const today = brFormatter.format(now).replace(' ', 'T');
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

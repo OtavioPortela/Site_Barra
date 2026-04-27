@@ -335,8 +335,9 @@ def formatar_nota_whatsapp(ordem_servico):
         return valor_str.replace('.', ',')
 
     # Formatar datas
-    data_criacao = ordem_servico.data_criacao.strftime('%d/%m/%Y') if ordem_servico.data_criacao else '-'
-    prazo_entrega = ordem_servico.prazo_entrega.strftime('%d/%m/%Y') if ordem_servico.prazo_entrega else '-'
+    from django.utils import timezone as tz
+    data_criacao = tz.localtime(ordem_servico.data_criacao).strftime('%d/%m/%Y') if ordem_servico.data_criacao else '-'
+    prazo_entrega = tz.localtime(ordem_servico.prazo_entrega).strftime('%d/%m/%Y') if ordem_servico.prazo_entrega else '-'
 
     # Formatar valores
     valor_metro = format_currency(ordem_servico.valor_metro) if ordem_servico.valor_metro else '-'

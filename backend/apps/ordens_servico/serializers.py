@@ -6,11 +6,11 @@ from .models import Cliente, OrdemServico, Servico, EstadoCabelo, TipoCabelo, Co
 
 
 class DateTimeFieldISO(serializers.DateTimeField):
-    """Campo de data/hora que retorna formato ISO 8601."""
+    """Campo de data/hora que retorna formato ISO 8601 em horário de Brasília."""
     def to_representation(self, value):
         if value is None:
             return None
-        return value.isoformat()
+        return timezone.localtime(value).isoformat()
 
 
 class ClienteSerializer(serializers.ModelSerializer):

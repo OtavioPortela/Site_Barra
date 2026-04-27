@@ -30,7 +30,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             onClick={() => setSidebarOpen(false)}
           />
         )}
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 min-w-0 overflow-x-auto">{children}</main>
       </div>
     </div>
   );

@@ -267,11 +267,15 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         data_inicio = request.query_params.get('data_inicio')
         data_fim = request.query_params.get('data_fim')
         cliente_id = request.query_params.get('cliente_id')
+        apenas_debitos = request.query_params.get('apenas_debitos')
 
         queryset = OrdemServico.objects.all().select_related('cliente', 'servico', 'usuario_criacao')
 
         if cliente_id:
             queryset = queryset.filter(cliente_id=cliente_id)
+
+        if apenas_debitos and apenas_debitos.lower() == 'true':
+            queryset = queryset.filter(forma_pagamento__isnull=True)
 
         if status_filter:
             queryset = queryset.filter(status=status_filter)
@@ -335,10 +339,10 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             ws.cell(row=row_num, column=12, value=ordem.servico.nome if ordem.servico else '')
             ws.cell(row=row_num, column=13, value=float(ordem.valor_metro) if ordem.valor_metro else 0)
             ws.cell(row=row_num, column=14, value=float(ordem.valor) if ordem.valor else 0)
-            ws.cell(row=row_num, column=15, value=ordem.data_criacao.strftime('%d/%m/%Y %H:%M') if ordem.data_criacao else '')
-            ws.cell(row=row_num, column=16, value=ordem.prazo_entrega.strftime('%d/%m/%Y %H:%M') if ordem.prazo_entrega else '')
-            ws.cell(row=row_num, column=17, value=ordem.data_finalizacao.strftime('%d/%m/%Y %H:%M') if ordem.data_finalizacao else '')
-            ws.cell(row=row_num, column=18, value=ordem.data_faturamento.strftime('%d/%m/%Y %H:%M') if ordem.data_faturamento else '')
+            ws.cell(row=row_num, column=15, value=timezone.localtime(ordem.data_criacao).strftime('%d/%m/%Y %H:%M') if ordem.data_criacao else '')
+            ws.cell(row=row_num, column=16, value=timezone.localtime(ordem.prazo_entrega).strftime('%d/%m/%Y %H:%M') if ordem.prazo_entrega else '')
+            ws.cell(row=row_num, column=17, value=timezone.localtime(ordem.data_finalizacao).strftime('%d/%m/%Y %H:%M') if ordem.data_finalizacao else '')
+            ws.cell(row=row_num, column=18, value=timezone.localtime(ordem.data_faturamento).strftime('%d/%m/%Y %H:%M') if ordem.data_faturamento else '')
             ws.cell(row=row_num, column=19, value=ordem.observacoes or '')
             ws.cell(row=row_num, column=20, value=ordem.usuario_criacao.nome_completo if ordem.usuario_criacao else '')
 
@@ -354,11 +358,11 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         if cliente_id:
             try:
                 nome_cliente = queryset.first().cliente.nome.replace(' ', '_') if queryset.exists() else 'cliente'
-                filename = f'conta_{nome_cliente}_{datetime.now().strftime("%Y%m%d")}.xlsx'
+                filename = f'conta_{nome_cliente}_{timezone.localtime().strftime("%Y%m%d")}.xlsx'
             except Exception:
-                filename = f'conta_cliente_{datetime.now().strftime("%Y%m%d")}.xlsx'
+                filename = f'conta_cliente_{timezone.localtime().strftime("%Y%m%d")}.xlsx'
         else:
-            filename = f'ordens_servico_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+            filename = f'ordens_servico_{timezone.localtime().strftime("%Y%m%d_%H%M%S")}.xlsx'
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
         wb.save(response)
@@ -570,7 +574,7 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
                 row += 1
 
             row += 1
-            ws[f'A{row}'] = f'Data de Emissão: {timezone.now().strftime("%d/%m/%Y %H:%M")}'
+            ws[f'A{row}'] = f'Data de Emissão: {timezone.localtime().strftime("%d/%m/%Y %H:%M")}'
             ws[f'A{row}'].font = Font(bold=True)
 
             # Cabeçalhos da tabela
@@ -590,7 +594,7 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
             total = 0
             for debito in debitos:
                 row += 1
-                ws.cell(row=row, column=1, value=debito.data_criacao.strftime('%d/%m/%Y') if debito.data_criacao else '')
+                ws.cell(row=row, column=1, value=timezone.localtime(debito.data_criacao).strftime('%d/%m/%Y') if debito.data_criacao else '')
                 ws.cell(row=row, column=2, value=debito.numero)
 
                 # Descrição ou serviço
@@ -622,7 +626,7 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
             response = HttpResponse(
                 content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
-            nome_arquivo = f'nota_debitos_{parceiro.nome.replace(" ", "_")}_{timezone.now().strftime("%Y%m%d")}.xlsx'
+            nome_arquivo = f'nota_debitos_{parceiro.nome.replace(" ", "_")}_{timezone.localtime().strftime("%Y%m%d")}.xlsx'
             response['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
 
             wb.save(response)
@@ -656,13 +660,13 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
             elementos.append(Paragraph(f'<b>Telefone:</b> {parceiro.telefone}', styles['Normal']))
         if parceiro.endereco:
             elementos.append(Paragraph(f'<b>Endereço:</b> {parceiro.endereco}', styles['Normal']))
-        elementos.append(Paragraph(f'<b>Data de Emissão:</b> {timezone.now().strftime("%d/%m/%Y %H:%M")}', styles['Normal']))
+        elementos.append(Paragraph(f'<b>Data de Emissão:</b> {timezone.localtime().strftime("%d/%m/%Y %H:%M")}', styles['Normal']))
         elementos.append(Spacer(1, 0.5*cm))
 
         dados = [['Data', 'OS', 'Descrição/Serviço', 'Valor (R$)']]
         total = 0
         for debito in debitos:
-            data_str = debito.data_criacao.strftime('%d/%m/%Y') if debito.data_criacao else '-'
+            data_str = timezone.localtime(debito.data_criacao).strftime('%d/%m/%Y') if debito.data_criacao else '-'
             descricao = debito.servico.nome if debito.servico else (debito.descricao or '-')
             valor = float(debito.valor) if debito.valor else 0
             total += valor
@@ -685,7 +689,7 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
         doc.build(elementos)
         buffer.seek(0)
         response = HttpResponse(buffer, content_type='application/pdf')
-        nome_arquivo = f'nota_debitos_{parceiro.nome.replace(" ", "_")}_{timezone.now().strftime("%Y%m%d")}.pdf'
+        nome_arquivo = f'nota_debitos_{parceiro.nome.replace(" ", "_")}_{timezone.localtime().strftime("%Y%m%d")}.pdf'
         response['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
         return response
 

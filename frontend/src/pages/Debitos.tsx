@@ -104,6 +104,52 @@ export const Debitos = () => {
     setShowMarcarPagoModal(true);
   };
 
+  const handleExportacaoCompleta = async () => {
+    if (!parceiroSelecionado) {
+      toast.error('Selecione um parceiro primeiro');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams();
+      params.append('cliente_id', parceiroSelecionado.toString());
+      params.append('apenas_debitos', 'true');
+
+      const url = `${import.meta.env.VITE_API_URL}/ordens-servico/exportar-excel/?${params.toString()}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao exportar');
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+
+      const parceiro = clientesParceiros.find(c => c.id === parceiroSelecionado);
+      const nomeArquivo = `exportacao_completa_${parceiro?.nome.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      link.download = nomeArquivo;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      toast.success('Exportação completa realizada com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao exportar:', error);
+      toast.error('Erro ao realizar exportação completa');
+    }
+  };
+
   const handleReverterPagamento = async (debito: Debito) => {
     if (!window.confirm(`Reverter pagamento de "${debito.numero}"?`)) return;
     try {
@@ -116,7 +162,7 @@ export const Debitos = () => {
   };
 
   // Calcular resumo
-  const totalPendente = debitos.reduce((sum, debito) => sum + (debito.valor || 0), 0);
+  const totalPendente = debitos.reduce((sum, debito) => sum + (Number(debito.valor) || 0), 0);
   const quantidadeOS = debitos.length;
   const parceiroAtual = clientesParceiros.find(c => c.id === parceiroSelecionado);
 
@@ -168,15 +214,22 @@ export const Debitos = () => {
         </div>
       )}
 
-      {/* Botão Exportar Nota */}
+      {/* Botões Exportar */}
       {parceiroSelecionado && debitos.length > 0 && (
-        <div className="mb-4">
+        <div className="mb-4 flex flex-wrap gap-3">
           <button
             onClick={handleExportarNota}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center space-x-2"
           >
             <span>📄</span>
             <span>Exportar Nota</span>
+          </button>
+          <button
+            onClick={handleExportacaoCompleta}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center space-x-2"
+          >
+            <span>📊</span>
+            <span>Exportação Completa</span>
           </button>
         </div>
       )}
