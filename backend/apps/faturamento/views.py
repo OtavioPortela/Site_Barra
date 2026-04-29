@@ -259,6 +259,7 @@ def configuracao_empresa_view(request):
 class SaidaCaixaViewSet(ModelViewSet):
     serializer_class = SaidaCaixaSerializer
     queryset = SaidaCaixa.objects.all()
+    pagination_class = None
 
     def get_permissions(self):
         # Qualquer autenticado pode criar e listar (lista filtrada por get_queryset)

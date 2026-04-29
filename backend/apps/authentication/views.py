@@ -102,6 +102,7 @@ class FuncionarioViewSet(viewsets.ModelViewSet):
     """ViewSet para gerenciamento de funcionários (apenas admin)."""
     queryset = Usuario.objects.all().order_by('-data_criacao')
     permission_classes = [IsAuthenticated, IsStaffOnly]
+    pagination_class = None
 
     def get_serializer_class(self):
         """Retorna serializer apropriado para cada ação."""
