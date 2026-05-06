@@ -17,6 +17,7 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
   const [formData, setFormData] = useState({
     cliente: '',
     descricao: '',
+    descricao_cliente: '',
     valor: '',
     valor_metro: '',
     prazo_entrega: '',
@@ -438,6 +439,7 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
         formDataToSend.append('cor_linha', formData.cor_linha);
         if (servicoId) formDataToSend.append('servico_id', String(servicoId));
         if (formData.descricao) formDataToSend.append('descricao', formData.descricao);
+        if (formData.descricao_cliente) formDataToSend.append('descricao_cliente', formData.descricao_cliente);
         if (formData.observacoes) formDataToSend.append('observacoes', formData.observacoes);
         formDataToSend.append('foto_entrega', fotoFile);
 
@@ -460,6 +462,7 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
         };
 
         if (formData.descricao) createData.descricao = formData.descricao;
+        if (formData.descricao_cliente) createData.descricao_cliente = formData.descricao_cliente;
         if (formData.observacoes) createData.observacoes = formData.observacoes;
 
         var ordemCriada = await ordemServicoService.create(createData);
@@ -491,6 +494,7 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
       setFormData({
         cliente: '',
         descricao: '',
+        descricao_cliente: '',
         valor: '',
         valor_metro: '',
         prazo_entrega: '',
@@ -740,6 +744,20 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
                   rows={3}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Descreva a ordem de serviço (opcional)"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="descricao_cliente" className="block text-sm font-medium text-gray-700 mb-2">
+                  Cliente-Descrição (opcional)
+                </label>
+                <input
+                  type="text"
+                  id="descricao_cliente"
+                  value={formData.descricao_cliente}
+                  onChange={(e) => setFormData({ ...formData, descricao_cliente: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Descrição interna do cliente (opcional)"
                 />
               </div>
 

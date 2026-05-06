@@ -305,7 +305,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
         # Cabeçalhos
         headers = [
-            'Número', 'Cliente', 'Status', 'Faturada', 'Descrição',
+            'Número', 'Cliente', 'Status', 'Faturada', 'Descrição', 'Cliente-Descrição',
             'Estado Cabelo', 'Tipo Cabelo', 'Cor Cabelo', 'Peso (g)', 'Tamanho (cm)',
             'Cor Linha', 'Serviço', 'Valor por Metro', 'Valor Total',
             'Data Criação', 'Prazo Entrega', 'Data Finalização', 'Data Faturamento',
@@ -330,24 +330,25 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             ws.cell(row=row_num, column=3, value=ordem.get_status_display())
             ws.cell(row=row_num, column=4, value='Sim' if ordem.faturada else 'Não')
             ws.cell(row=row_num, column=5, value=ordem.descricao or '')
-            ws.cell(row=row_num, column=6, value=ordem.get_estado_cabelo_display() if ordem.estado_cabelo else '')
-            ws.cell(row=row_num, column=7, value=ordem.get_tipo_cabelo_display() if ordem.tipo_cabelo else '')
-            ws.cell(row=row_num, column=8, value=ordem.cor_cabelo or '')
-            ws.cell(row=row_num, column=9, value=ordem.peso_gramas or 0)
-            ws.cell(row=row_num, column=10, value=ordem.tamanho_cabelo_cm or 0)
-            ws.cell(row=row_num, column=11, value=ordem.cor_linha or '')
-            ws.cell(row=row_num, column=12, value=ordem.servico.nome if ordem.servico else '')
-            ws.cell(row=row_num, column=13, value=float(ordem.valor_metro) if ordem.valor_metro else 0)
-            ws.cell(row=row_num, column=14, value=float(ordem.valor) if ordem.valor else 0)
-            ws.cell(row=row_num, column=15, value=timezone.localtime(ordem.data_criacao).strftime('%d/%m/%Y %H:%M') if ordem.data_criacao else '')
-            ws.cell(row=row_num, column=16, value=timezone.localtime(ordem.prazo_entrega).strftime('%d/%m/%Y %H:%M') if ordem.prazo_entrega else '')
-            ws.cell(row=row_num, column=17, value=timezone.localtime(ordem.data_finalizacao).strftime('%d/%m/%Y %H:%M') if ordem.data_finalizacao else '')
-            ws.cell(row=row_num, column=18, value=timezone.localtime(ordem.data_faturamento).strftime('%d/%m/%Y %H:%M') if ordem.data_faturamento else '')
-            ws.cell(row=row_num, column=19, value=ordem.observacoes or '')
-            ws.cell(row=row_num, column=20, value=ordem.usuario_criacao.nome_completo if ordem.usuario_criacao else '')
+            ws.cell(row=row_num, column=6, value=ordem.descricao_cliente or '')
+            ws.cell(row=row_num, column=7, value=ordem.get_estado_cabelo_display() if ordem.estado_cabelo else '')
+            ws.cell(row=row_num, column=8, value=ordem.get_tipo_cabelo_display() if ordem.tipo_cabelo else '')
+            ws.cell(row=row_num, column=9, value=ordem.cor_cabelo or '')
+            ws.cell(row=row_num, column=10, value=ordem.peso_gramas or 0)
+            ws.cell(row=row_num, column=11, value=ordem.tamanho_cabelo_cm or 0)
+            ws.cell(row=row_num, column=12, value=ordem.cor_linha or '')
+            ws.cell(row=row_num, column=13, value=ordem.servico.nome if ordem.servico else '')
+            ws.cell(row=row_num, column=14, value=float(ordem.valor_metro) if ordem.valor_metro else 0)
+            ws.cell(row=row_num, column=15, value=float(ordem.valor) if ordem.valor else 0)
+            ws.cell(row=row_num, column=16, value=timezone.localtime(ordem.data_criacao).strftime('%d/%m/%Y %H:%M') if ordem.data_criacao else '')
+            ws.cell(row=row_num, column=17, value=timezone.localtime(ordem.prazo_entrega).strftime('%d/%m/%Y %H:%M') if ordem.prazo_entrega else '')
+            ws.cell(row=row_num, column=18, value=timezone.localtime(ordem.data_finalizacao).strftime('%d/%m/%Y %H:%M') if ordem.data_finalizacao else '')
+            ws.cell(row=row_num, column=19, value=timezone.localtime(ordem.data_faturamento).strftime('%d/%m/%Y %H:%M') if ordem.data_faturamento else '')
+            ws.cell(row=row_num, column=20, value=ordem.observacoes or '')
+            ws.cell(row=row_num, column=21, value=ordem.usuario_criacao.nome_completo if ordem.usuario_criacao else '')
 
         # Ajustar largura das colunas
-        column_widths = [15, 30, 15, 10, 30, 15, 15, 15, 12, 12, 15, 20, 15, 15, 18, 15, 18, 18, 40, 25]
+        column_widths = [15, 30, 15, 10, 30, 30, 15, 15, 15, 12, 12, 15, 20, 15, 15, 18, 15, 18, 18, 40, 25]
         for col_num, width in enumerate(column_widths, 1):
             ws.column_dimensions[ws.cell(row=1, column=col_num).column_letter].width = width
 
@@ -538,12 +539,12 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
             ws.title = "Nota de Débitos"
 
             # Cabeçalho da empresa
-            ws.merge_cells('A1:E1')
+            ws.merge_cells('A1:F1')
             ws['A1'] = 'BARRA CONFECCOES LTDA'
             ws['A1'].font = Font(bold=True, size=16)
             ws['A1'].alignment = Alignment(horizontal='center')
 
-            ws.merge_cells('A2:E2')
+            ws.merge_cells('A2:F2')
             ws['A2'] = 'Nota de Débitos - Parceiro'
             ws['A2'].font = Font(bold=True, size=14)
             ws['A2'].alignment = Alignment(horizontal='center')
@@ -579,7 +580,7 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
 
             # Cabeçalhos da tabela
             row += 2
-            headers = ['Data', 'OS', 'Descrição/Serviço', 'Valor (R$)']
+            headers = ['Data', 'OS', 'Descrição/Serviço', 'Cliente-Descrição', 'Valor (R$)']
             header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
             header_font = Font(bold=True, color="FFFFFF")
             header_alignment = Alignment(horizontal="center", vertical="center")
@@ -600,27 +601,29 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
                 # Descrição ou serviço
                 descricao_servico = debito.servico.nome if debito.servico else (debito.descricao or '')
                 ws.cell(row=row, column=3, value=descricao_servico)
+                ws.cell(row=row, column=4, value=debito.descricao_cliente or '')
 
                 valor = float(debito.valor) if debito.valor else 0
-                ws.cell(row=row, column=4, value=valor)
+                ws.cell(row=row, column=5, value=valor)
                 total += valor
 
             # Rodapé com total
             row += 2
-            ws.merge_cells(f'C{row}:D{row}')
+            ws.merge_cells(f'C{row}:E{row}')
             ws[f'C{row}'] = 'TOTAL:'
             ws[f'C{row}'].font = Font(bold=True, size=12)
             ws[f'C{row}'].alignment = Alignment(horizontal='right')
-            ws[f'E{row}'] = total
-            ws[f'E{row}'].font = Font(bold=True, size=12)
-            ws[f'E{row}'].number_format = '#,##0.00'
+            ws[f'F{row}'] = total
+            ws[f'F{row}'].font = Font(bold=True, size=12)
+            ws[f'F{row}'].number_format = '#,##0.00'
 
             # Ajustar largura das colunas
             ws.column_dimensions['A'].width = 15
             ws.column_dimensions['B'].width = 15
-            ws.column_dimensions['C'].width = 40
-            ws.column_dimensions['D'].width = 15
+            ws.column_dimensions['C'].width = 30
+            ws.column_dimensions['D'].width = 25
             ws.column_dimensions['E'].width = 15
+            ws.column_dimensions['F'].width = 15
 
             # Criar resposta HTTP
             response = HttpResponse(
@@ -663,24 +666,24 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
         elementos.append(Paragraph(f'<b>Data de Emissão:</b> {timezone.localtime().strftime("%d/%m/%Y %H:%M")}', styles['Normal']))
         elementos.append(Spacer(1, 0.5*cm))
 
-        dados = [['Data', 'OS', 'Descrição/Serviço', 'Valor (R$)']]
+        dados = [['Data', 'OS', 'Descrição/Serviço', 'Cliente-Descrição', 'Valor (R$)']]
         total = 0
         for debito in debitos:
             data_str = timezone.localtime(debito.data_criacao).strftime('%d/%m/%Y') if debito.data_criacao else '-'
             descricao = debito.servico.nome if debito.servico else (debito.descricao or '-')
             valor = float(debito.valor) if debito.valor else 0
             total += valor
-            dados.append([data_str, debito.numero, descricao, f'R$ {valor:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')])
+            dados.append([data_str, debito.numero, descricao, debito.descricao_cliente or '', f'R$ {valor:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')])
 
-        dados.append(['', '', 'TOTAL:', f'R$ {total:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')])
+        dados.append(['', '', 'TOTAL:', '', f'R$ {total:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')])
 
-        tabela = Table(dados, colWidths=[3*cm, 3*cm, 9*cm, 3*cm])
+        tabela = Table(dados, colWidths=[2.5*cm, 2.5*cm, 6*cm, 4*cm, 2.5*cm])
         tabela.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#366092')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('ALIGN', (2, 1), (2, -1), 'LEFT'),
+            ('ALIGN', (2, 1), (3, -1), 'LEFT'),
             ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
             ('GRID', (0, 0), (-1, -2), 0.5, colors.grey),
             ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f5f5f5')]),

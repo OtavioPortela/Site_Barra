@@ -55,6 +55,7 @@ class OrdemServico(models.Model):
     numero = models.CharField(max_length=20, unique=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='ordens_servico')
     descricao = models.TextField(blank=True, default='')
+    descricao_cliente = models.CharField(max_length=500, blank=True, default='', verbose_name='Cliente-Descrição')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pendente')
     estado_cabelo = models.CharField(
     max_length=20,

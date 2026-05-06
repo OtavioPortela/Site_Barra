@@ -5,6 +5,7 @@ export interface OrdemServico {
   cliente_telefone?: string;
   cliente_eh_parceiro?: boolean;
   descricao: string;
+  descricao_cliente?: string;
   status: 'pendente' | 'em_desenvolvimento' | 'finalizada';
   valor: number;
   data_criacao: string;
