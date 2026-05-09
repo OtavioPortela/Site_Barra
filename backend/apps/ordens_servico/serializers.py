@@ -159,8 +159,8 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
         return value
 
     def validate_prazo_entrega(self, value):
-        """Valida que o prazo não seja no passado."""
-        if value < timezone.now():
+        """Valida que o prazo não seja no passado (apenas na criação)."""
+        if self.instance is None and value < timezone.now():
             raise serializers.ValidationError("O prazo de entrega não pode ser no passado.")
         return value
 
