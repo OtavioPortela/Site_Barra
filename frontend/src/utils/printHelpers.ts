@@ -49,12 +49,18 @@ export const formatarNotaTermica = (ordem: OrdemServico, _formaPagamentoOverride
   const nomeFantasia = 'BARRA CONFECCOES';
   const cnpj = '59.220.325/0001-22';
 
-  // Forma de pagamento
-  const formaPgto = ordem.forma_pagamento
-    ? getFormaPagamentoLabel(ordem.forma_pagamento)
-    : ordem.cliente_eh_parceiro
-    ? 'Conta do parceiro'
-    : 'A definir';
+  // Forma de pagamento (simples ou dividida)
+  const dividido = ordem.forma_pagamento_2 && ordem.valor_pagamento_1 != null && ordem.valor_pagamento_2 != null;
+  const formaPgtoSection = dividido
+    ? `Forma 1: ${getFormaPagamentoLabel(ordem.forma_pagamento)} — R$ ${formatCurrency(Number(ordem.valor_pagamento_1))}
+Forma 2: ${getFormaPagamentoLabel(ordem.forma_pagamento_2!)} — R$ ${formatCurrency(Number(ordem.valor_pagamento_2))}`
+    : `Forma de Pagamento: ${
+        ordem.forma_pagamento
+          ? getFormaPagamentoLabel(ordem.forma_pagamento)
+          : ordem.cliente_eh_parceiro
+          ? 'Conta do parceiro'
+          : 'A definir'
+      }`;
 
   const observacoesSection = ordem.observacoes
     ? `${'_'.repeat(48)}
@@ -84,11 +90,13 @@ ${'_'.repeat(48)}
           DETALHES DO SERVICO
 ${'_'.repeat(48)}
 Servico: ${ordem.servico || '-'}
+Descricao: ${ordem.descricao || '-'}
+Cor da Linha: ${ordem.cor_linha || '-'}
 ${'_'.repeat(48)}
             VALORES
 ${'_'.repeat(48)}
 VALOR TOTAL: R$ ${valorTotal}
-Forma de Pagamento: ${formaPgto}
+${formaPgtoSection}
 ${'_'.repeat(48)}
 ${observacoesSection}       INFORMACOES ADICIONAIS
 ${'_'.repeat(48)}

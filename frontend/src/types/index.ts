@@ -28,6 +28,9 @@ export interface OrdemServico {
   pago_na_entrega?: boolean;
   foto_entrega?: string;
   forma_pagamento?: 'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito';
+  forma_pagamento_2?: 'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito' | null;
+  valor_pagamento_1?: number | null;
+  valor_pagamento_2?: number | null;
 }
 
 export interface Cliente {

@@ -12,5 +12,7 @@ urlpatterns = [
     path('por-cliente/', views.por_cliente_view, name='faturamento-por-cliente'),
     path('relatorio/', views.relatorio_view, name='faturamento-relatorio'),
     path('configuracao-empresa/', views.configuracao_empresa_view, name='configuracao-empresa'),
+    path('verificar-pin/', views.verificar_pin_view, name='verificar-pin'),
+    path('faturados-no-dia/', views.faturados_no_dia_view, name='faturados-no-dia'),
     path('', include(router.urls)),
 ]

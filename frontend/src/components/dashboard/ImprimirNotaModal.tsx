@@ -23,6 +23,9 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
   const [formaPagamento, setFormaPagamento] = useState<'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito' | ''>('');
   const [adicionarAConta, setAdicionarAConta] = useState(false);
   const [ehParceiro, setEhParceiro] = useState(false);
+  const [pagamentoDividido, setPagamentoDividido] = useState(false);
+  const [formaPagamento2, setFormaPagamento2] = useState<'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito' | ''>('');
+  const [valorPagamento1, setValorPagamento1] = useState('');
 
   // Buscar dados completos da OS quando o modal abrir
   useEffect(() => {
@@ -59,9 +62,12 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
       buscarOrdemCompleta();
     } else {
       setOrdemCompleta(null);
-      setFormaPagamento(''); // Reset ao fechar
+      setFormaPagamento('');
       setAdicionarAConta(false);
       setEhParceiro(false);
+      setPagamentoDividido(false);
+      setFormaPagamento2('');
+      setValorPagamento1('');
     }
   }, [isOpen, ordem, apenasVisualizar]);
 
@@ -73,10 +79,14 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
   const handleImprimir = () => {
     if (!ordemParaNota) return;
 
-    // Usar forma de pagamento selecionada ou salva
+    const total = Number(ordemParaNota.valor);
+    const v1 = pagamentoDividido && valorPagamento1 ? parseFloat(valorPagamento1) : null;
     const ordemParaImprimir = {
       ...ordemParaNota,
-      forma_pagamento: formaPagamento || ordemParaNota.forma_pagamento
+      forma_pagamento: (formaPagamento || ordemParaNota.forma_pagamento) as any,
+      forma_pagamento_2: pagamentoDividido && formaPagamento2 ? formaPagamento2 : null,
+      valor_pagamento_1: v1,
+      valor_pagamento_2: v1 !== null ? parseFloat((total - v1).toFixed(2)) : null,
     };
 
     imprimirNota(ordemParaImprimir);
@@ -113,18 +123,35 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
         alert('Por favor, selecione a forma de pagamento ou adicione à conta do parceiro');
         return;
       }
+      if (pagamentoDividido) {
+        if (!formaPagamento2) { alert('Selecione a segunda forma de pagamento'); return; }
+        const v1 = parseFloat(valorPagamento1);
+        const total = ordemParaNota ? Number(ordemParaNota.valor) : 0;
+        if (isNaN(v1) || v1 <= 0 || v1 >= total) {
+          alert(`O valor da primeira forma deve ser entre R$ 0,01 e R$ ${(total - 0.01).toFixed(2)}`);
+          return;
+        }
+      }
     }
 
     setLoading(true);
     try {
       // Salvar forma de pagamento na OS (apenas se não for apenas visualizar)
       if (ordemParaNota && !apenasVisualizar) {
-        // Se for parceiro e marcar adicionar à conta, enviar undefined (null no backend)
-        // Caso contrário, enviar forma de pagamento selecionada
         const formaPagamentoToSave = (ehParceiro && adicionarAConta)
           ? undefined
           : (formaPagamento || undefined);
-        await ordemServicoService.update(ordemParaNota.id, { forma_pagamento: formaPagamentoToSave });
+
+        const total = Number(ordemParaNota.valor);
+        const v1 = pagamentoDividido && valorPagamento1 ? parseFloat(valorPagamento1) : null;
+        const v2 = v1 !== null ? parseFloat((total - v1).toFixed(2)) : null;
+
+        await ordemServicoService.update(ordemParaNota.id, {
+          forma_pagamento: formaPagamentoToSave,
+          forma_pagamento_2: (pagamentoDividido && formaPagamento2) ? formaPagamento2 : null,
+          valor_pagamento_1: v1 ?? undefined,
+          valor_pagamento_2: v2 ?? undefined,
+        } as any);
 
         // Se for adicionar à conta, não faturar (apenas atualiza o status de pagamento para nulo)
         if (ehParceiro && adicionarAConta) {
@@ -196,10 +223,17 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
           ) : (
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 max-h-60 overflow-y-auto">
               <pre className="text-xs font-mono whitespace-pre-wrap text-gray-800">
-                {ordemParaNota ? formatarNotaTermica({
-                  ...ordemParaNota,
-                  forma_pagamento: formaPagamento || ordemParaNota.forma_pagamento
-                }) : ''}
+                {ordemParaNota ? (() => {
+                  const total = Number(ordemParaNota.valor);
+                  const v1 = pagamentoDividido && valorPagamento1 ? parseFloat(valorPagamento1) : null;
+                  return formatarNotaTermica({
+                    ...ordemParaNota,
+                    forma_pagamento: (formaPagamento || ordemParaNota.forma_pagamento) as any,
+                    forma_pagamento_2: pagamentoDividido && formaPagamento2 ? formaPagamento2 : null,
+                    valor_pagamento_1: v1,
+                    valor_pagamento_2: v1 !== null ? parseFloat((total - v1).toFixed(2)) : null,
+                  });
+                })() : ''}
               </pre>
             </div>
           )}
@@ -241,22 +275,98 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
 
               {/* Forma de Pagamento - apenas se não for adicionar à conta */}
               {!adicionarAConta && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Forma de Pagamento {!ehParceiro && '*'}
-                  </label>
-                  <select
-                    value={formaPagamento}
-                    onChange={(e) => setFormaPagamento(e.target.value as any)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
-                    required={!ehParceiro}
-                  >
-                    <option value="">Selecione a forma de pagamento</option>
-                    <option value="dinheiro">Dinheiro</option>
-                    <option value="pix">PIX</option>
-                    <option value="cartao_credito">Cartão de Crédito</option>
-                    <option value="cartao_debito">Cartão de Débito</option>
-                  </select>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Forma de Pagamento {!ehParceiro && '*'}
+                    </label>
+                    <select
+                      value={formaPagamento}
+                      onChange={(e) => setFormaPagamento(e.target.value as any)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+                      required={!ehParceiro}
+                    >
+                      <option value="">Selecione a forma de pagamento</option>
+                      <option value="dinheiro">Dinheiro</option>
+                      <option value="pix">PIX</option>
+                      <option value="cartao_credito">Cartão de Crédito</option>
+                      <option value="cartao_debito">Cartão de Débito</option>
+                    </select>
+                  </div>
+
+                  {/* Toggle pagamento dividido */}
+                  {formaPagamento && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="pagamentoDividido"
+                        checked={pagamentoDividido}
+                        onChange={e => {
+                          setPagamentoDividido(e.target.checked);
+                          if (!e.target.checked) { setFormaPagamento2(''); setValorPagamento1(''); }
+                        }}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                      />
+                      <label htmlFor="pagamentoDividido" className="text-sm text-gray-700 cursor-pointer">
+                        Pagamento dividido (duas formas)
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Campos do pagamento dividido */}
+                  {pagamentoDividido && ordemParaNota && (
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Valor — {formaPagamento ? formaPagamento.replace('_', ' ') : 'Forma 1'} (R$)
+                          </label>
+                          <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            max={Number(ordemParaNota.valor) - 0.01}
+                            value={valorPagamento1}
+                            onChange={e => setValorPagamento1(e.target.value)}
+                            placeholder="0,00"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Restante (R$)
+                          </label>
+                          <input
+                            type="text"
+                            readOnly
+                            value={
+                              valorPagamento1 && !isNaN(parseFloat(valorPagamento1))
+                                ? (Number(ordemParaNota.valor) - parseFloat(valorPagamento1)).toFixed(2)
+                                : '-'
+                            }
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Segunda forma *</label>
+                        <select
+                          value={formaPagamento2}
+                          onChange={e => setFormaPagamento2(e.target.value as any)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Selecione</option>
+                          {(['dinheiro', 'pix', 'cartao_credito', 'cartao_debito'] as const)
+                            .filter(f => f !== formaPagamento)
+                            .map(f => (
+                              <option key={f} value={f}>
+                                {f === 'dinheiro' ? 'Dinheiro' : f === 'pix' ? 'PIX' : f === 'cartao_credito' ? 'Cartão de Crédito' : 'Cartão de Débito'}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

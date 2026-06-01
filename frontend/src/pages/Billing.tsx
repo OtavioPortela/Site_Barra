@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { BillingChart } from '../components/billing/BillingChart';
 import { BillingMetrics } from '../components/billing/BillingMetrics';
+import { FaturadosDia } from '../components/billing/FaturadosDia';
 import { Loading } from '../components/common/Loading';
 import { billingService, clienteService, saidaCaixaService } from '../services/api';
 import type { BillingData, SaidaCaixa } from '../types';
+
+type Aba = 'dashboard' | 'faturados-dia' | 'lancamentos';
 
 const CATEGORIAS = [
   { value: 'aluguel', label: 'Aluguel' },
@@ -26,6 +29,7 @@ const emptyForm = {
 };
 
 export const Billing = () => {
+  const [aba, setAba] = useState<Aba>('dashboard');
   const [data, setData] = useState<BillingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [clientes, setClientes] = useState<Array<{ id: number; nome: string }>>([]);
@@ -157,59 +161,87 @@ export const Billing = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Faturamento</h1>
 
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
-              <input
-                type="date"
-                value={filters.data_inicio}
-                onChange={(e) => handleFilterChange('data_inicio', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Data Fim</label>
-              <input
-                type="date"
-                value={filters.data_fim}
-                onChange={(e) => handleFilterChange('data_fim', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
-              <select
-                value={filters.cliente}
-                onChange={(e) => handleFilterChange('cliente', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
-              >
-                <option value="">Todos os clientes</option>
-                {clientes.map((cliente) => (
-                  <option key={cliente.id} value={cliente.nome}>
-                    {cliente.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                type="button"
-                onClick={handleApplyFilters}
-                className="w-full px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                Aplicar Filtros
-              </button>
-            </div>
-          </div>
+        {/* Abas */}
+        <div className="flex gap-1 border-b border-gray-200 mb-6">
+          {([
+            { id: 'dashboard',      label: 'Visão Geral' },
+            { id: 'faturados-dia',  label: 'Faturados no Dia' },
+            { id: 'lancamentos',    label: 'Lançamentos de Caixa' },
+          ] as { id: Aba; label: string }[]).map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setAba(id)}
+              className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                aba === id
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
-      <BillingMetrics data={data} />
-      <BillingChart data={data} />
+      {/* Aba: Visão Geral */}
+      {aba === 'dashboard' && (
+        <>
+          <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
+                <input
+                  type="date"
+                  value={filters.data_inicio}
+                  onChange={(e) => handleFilterChange('data_inicio', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Data Fim</label>
+                <input
+                  type="date"
+                  value={filters.data_fim}
+                  onChange={(e) => handleFilterChange('data_fim', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
+                <select
+                  value={filters.cliente}
+                  onChange={(e) => handleFilterChange('cliente', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+                >
+                  <option value="">Todos os clientes</option>
+                  {clientes.map((cliente) => (
+                    <option key={cliente.id} value={cliente.nome}>
+                      {cliente.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={handleApplyFilters}
+                  className="w-full px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Aplicar Filtros
+                </button>
+              </div>
+            </div>
+          </div>
+          <BillingMetrics data={data} />
+          <BillingChart data={data} />
+        </>
+      )}
 
-      {/* Seção de Saídas de Caixa */}
-      <div className="mt-8">
+      {/* Aba: Faturados no Dia */}
+      {aba === 'faturados-dia' && <FaturadosDia />}
+
+      {/* Aba: Lançamentos de Caixa */}
+      {aba === 'lancamentos' && <div className="mt-2">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-800">Lançamentos de Caixa</h2>
           <button
@@ -383,7 +415,7 @@ export const Billing = () => {
             </div>
           )}
         </div>
-      </div>
+      </div>}
     </div>
   );
 };

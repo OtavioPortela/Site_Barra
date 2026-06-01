@@ -42,6 +42,9 @@ interface Servico {
 export const Configuracoes = () => {
   const [empresa, setEmpresa] = useState({ nome: '', cnpj: '', email: '', telefone: '', endereco: '' });
   const [savingEmpresa, setSavingEmpresa] = useState(false);
+  const [temPin, setTemPin] = useState(false);
+  const [novoPin, setNovoPin] = useState('');
+  const [savingPin, setSavingPin] = useState(false);
 
   // Estados para cada tipo de configuração
   const [estadosCabelo, setEstadosCabelo] = useState<EstadoCabelo[]>([]);
@@ -60,7 +63,10 @@ export const Configuracoes = () => {
   // Carregar dados ao montar
   useEffect(() => {
     loadData();
-    configuracaoEmpresaService.get().then(setEmpresa).catch(() => {});
+    configuracaoEmpresaService.get().then(data => {
+      setEmpresa(data);
+      setTemPin(data.tem_pin ?? false);
+    }).catch(() => {});
   }, []);
 
   const handleSaveEmpresa = async () => {
@@ -72,6 +78,39 @@ export const Configuracoes = () => {
       toast.error('Erro ao salvar configurações da empresa');
     } finally {
       setSavingEmpresa(false);
+    }
+  };
+
+  const handleSavePin = async () => {
+    if (!novoPin.trim()) { toast.error('Digite um PIN'); return; }
+    if (!/^\d{4,6}$/.test(novoPin)) { toast.error('O PIN deve ter entre 4 e 6 dígitos'); return; }
+    try {
+      setSavingPin(true);
+      await configuracaoEmpresaService.update({ pin_faturamento: novoPin });
+      setTemPin(true);
+      setNovoPin('');
+      sessionStorage.removeItem('billing_pin_ok');
+      toast.success('PIN do faturamento salvo!');
+    } catch {
+      toast.error('Erro ao salvar PIN');
+    } finally {
+      setSavingPin(false);
+    }
+  };
+
+  const handleRemovePin = async () => {
+    if (!confirm('Remover o PIN do faturamento? A página ficará acessível sem senha.')) return;
+    try {
+      setSavingPin(true);
+      await configuracaoEmpresaService.update({ pin_faturamento: '' });
+      setTemPin(false);
+      setNovoPin('');
+      sessionStorage.removeItem('billing_pin_ok');
+      toast.success('PIN removido com sucesso.');
+    } catch {
+      toast.error('Erro ao remover PIN');
+    } finally {
+      setSavingPin(false);
     }
   };
 
@@ -329,6 +368,50 @@ export const Configuracoes = () => {
               >
                 {savingEmpresa ? 'Salvando...' : 'Salvar Informações'}
               </button>
+            </div>
+          </div>
+
+          {/* Seção: PIN do Faturamento */}
+          <div className="border-b border-gray-200 pb-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-1">PIN do Faturamento</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Quando configurado, a página de Faturamento pedirá este PIN uma vez por sessão do navegador.
+            </p>
+            {temPin && (
+              <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 w-fit">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                PIN configurado
+              </div>
+            )}
+            <div className="flex gap-2 items-center">
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                value={novoPin}
+                onChange={e => setNovoPin(e.target.value.replace(/\D/g, ''))}
+                placeholder={temPin ? 'Novo PIN (4–6 dígitos)' : 'Criar PIN (4–6 dígitos)'}
+                className="w-48 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent tracking-widest text-center"
+              />
+              <button
+                onClick={handleSavePin}
+                disabled={savingPin}
+                className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+              >
+                {savingPin ? 'Salvando...' : temPin ? 'Alterar PIN' : 'Criar PIN'}
+              </button>
+              {temPin && (
+                <button
+                  onClick={handleRemovePin}
+                  disabled={savingPin}
+                  className="px-5 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium disabled:opacity-50"
+                >
+                  Remover PIN
+                </button>
+              )}
             </div>
           </div>
 

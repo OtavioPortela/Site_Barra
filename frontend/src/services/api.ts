@@ -411,13 +411,51 @@ export const debitoService = {
   },
 };
 
+export interface FaturadosDiaItem {
+  id: number;
+  numero: string;
+  cliente: string;
+  servico: string;
+  valor: number;
+  forma_pagamento: string | null;
+  forma_pagamento_2: string | null;
+  valor_pagamento_1: number | null;
+  valor_pagamento_2: number | null;
+  data_faturamento: string | null;
+}
+
+export interface FaturadosDia {
+  data: string;
+  total: number;
+  quantidade: number;
+  por_forma_pagamento: Array<{
+    forma: string;
+    label: string;
+    total: number;
+    quantidade: number;
+  }>;
+  ordens: FaturadosDiaItem[];
+}
+
+export const faturadosDiaService = {
+  get: async (data?: string): Promise<FaturadosDia> => {
+    const params = data ? { data } : {};
+    const response = await api.get('/faturamento/faturados-no-dia/', { params });
+    return response.data;
+  },
+};
+
 export const configuracaoEmpresaService = {
-  get: async (): Promise<{ nome: string; cnpj: string; email: string; telefone: string; endereco: string }> => {
+  get: async (): Promise<{ nome: string; cnpj: string; email: string; telefone: string; endereco: string; tem_pin: boolean }> => {
     const response = await api.get('/faturamento/configuracao-empresa/');
     return response.data;
   },
-  update: async (data: Partial<{ nome: string; cnpj: string; email: string; telefone: string; endereco: string }>) => {
+  update: async (data: Partial<{ nome: string; cnpj: string; email: string; telefone: string; endereco: string; pin_faturamento: string }>) => {
     const response = await api.patch('/faturamento/configuracao-empresa/', data);
+    return response.data;
+  },
+  verificarPin: async (pin: string): Promise<{ valido: boolean }> => {
+    const response = await api.post('/faturamento/verificar-pin/', { pin });
     return response.data;
   },
 };

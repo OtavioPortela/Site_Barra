@@ -10,6 +10,7 @@ class ConfiguracaoEmpresa(models.Model):
     email = models.EmailField(blank=True, default='')
     telefone = models.CharField(max_length=20, blank=True, default='')
     endereco = models.TextField(blank=True, default='')
+    pin_faturamento = models.CharField(max_length=6, blank=True, default='', verbose_name='PIN do Faturamento')
 
     class Meta:
         verbose_name = 'Configuração da Empresa'

@@ -137,6 +137,23 @@ class OrdemServico(models.Model):
         verbose_name='Forma de Pagamento',
         help_text='Forma de pagamento utilizada na OS'
     )
+    forma_pagamento_2 = models.CharField(
+        max_length=20,
+        choices=FORMA_PAGAMENTO_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name='Segunda Forma de Pagamento',
+    )
+    valor_pagamento_1 = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='Valor — Forma 1',
+    )
+    valor_pagamento_2 = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='Valor — Forma 2',
+    )
     foto_entrega = models.ImageField(
         upload_to='fotos_entrega/',
         blank=True,

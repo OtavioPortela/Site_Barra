@@ -70,7 +70,8 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
             'estado_cabelo', 'tipo_cabelo', 'cor_cabelo', 'peso_gramas',
             'tamanho_cabelo_cm', 'cor_linha', 'servico', 'servico_id', 'servico_nome', 'valor_metro',
             'valor', 'data_criacao', 'prazo_entrega', 'data_finalizacao', 'faturada', 'data_faturamento',
-            'observacoes', 'usuario_criacao', 'usuario_criacao_nome', 'entregue', 'pago_na_entrega', 'foto_entrega', 'forma_pagamento'
+            'observacoes', 'usuario_criacao', 'usuario_criacao_nome', 'entregue', 'pago_na_entrega', 'foto_entrega',
+            'forma_pagamento', 'forma_pagamento_2', 'valor_pagamento_1', 'valor_pagamento_2'
         ]
         read_only_fields = ['id', 'data_criacao', 'data_finalizacao', 'faturada', 'data_faturamento', 'usuario_criacao']
 
@@ -205,7 +206,8 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
         model = OrdemServico
         fields = [
             'id', 'numero', 'cliente', 'cliente_telefone', 'cliente_eh_parceiro', 'descricao', 'status',
-            'servico', 'valor', 'data_criacao', 'prazo_entrega', 'data_finalizacao', 'faturada', 'entregue', 'pago_na_entrega', 'foto_entrega', 'forma_pagamento'
+            'servico', 'valor', 'data_criacao', 'prazo_entrega', 'data_finalizacao', 'faturada', 'entregue', 'pago_na_entrega', 'foto_entrega',
+            'forma_pagamento', 'forma_pagamento_2', 'valor_pagamento_1', 'valor_pagamento_2'
         ]
 
 

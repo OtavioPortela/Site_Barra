@@ -9,6 +9,7 @@ import { ProtectedRoutePatrao } from './components/common/ProtectedRoutePatrao';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Billing } from './pages/Billing';
+import { PinGate } from './components/billing/PinGate';
 import { HistoricoOS } from './pages/HistoricoOS';
 import { Clientes } from './pages/Clientes';
 import { Funcionarios } from './pages/Funcionarios';
@@ -64,7 +65,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AppLayout>
-              <Billing />
+              <PinGate>
+                <Billing />
+              </PinGate>
             </AppLayout>
           </ProtectedRoute>
         }

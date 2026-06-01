@@ -251,9 +251,110 @@ def configuracao_empresa_view(request):
         serializer = ConfiguracaoEmpresaSerializer(config, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            return Response(ConfiguracaoEmpresaSerializer(config).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     return Response(ConfiguracaoEmpresaSerializer(config).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsStaffOnly])
+def faturados_no_dia_view(request):
+    """Retorna OS faturadas em uma data específica, agrupadas por forma de pagamento."""
+    data_str = request.query_params.get('data')
+
+    if not data_str:
+        data_ref = timezone.now().date()
+    else:
+        try:
+            data_ref = datetime.strptime(data_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({'error': 'Formato de data inválido. Use YYYY-MM-DD.'}, status=400)
+
+    ordens = (
+        OrdemServico.objects
+        .filter(faturada=True, data_faturamento__date=data_ref)
+        .select_related('cliente', 'servico')
+        .order_by('data_faturamento')
+    )
+
+    FORMAS_LABELS = {
+        'dinheiro': 'Dinheiro',
+        'pix': 'PIX',
+        'cartao_credito': 'Cartão de Crédito',
+        'cartao_debito': 'Cartão de Débito',
+        'parceiro': 'Sem forma / Parceiro',
+    }
+
+    # Acumula totais por forma (respeitando pagamento dividido)
+    totais: dict = {}
+    for o in ordens:
+        dividido = o.forma_pagamento_2 and o.valor_pagamento_1 is not None and o.valor_pagamento_2 is not None
+        if dividido:
+            k1 = o.forma_pagamento or 'parceiro'
+            k2 = o.forma_pagamento_2
+            totais.setdefault(k1, {'total': 0, 'quantidade': 0})
+            totais.setdefault(k2, {'total': 0, 'quantidade': 0})
+            totais[k1]['total'] += float(o.valor_pagamento_1)
+            totais[k1]['quantidade'] += 1
+            totais[k2]['total'] += float(o.valor_pagamento_2)
+            totais[k2]['quantidade'] += 1
+        else:
+            k = o.forma_pagamento or 'parceiro'
+            totais.setdefault(k, {'total': 0, 'quantidade': 0})
+            totais[k]['total'] += float(o.valor)
+            totais[k]['quantidade'] += 1
+
+    # Garante ordem fixa de exibição
+    ordem_formas = ['dinheiro', 'pix', 'cartao_credito', 'cartao_debito', 'parceiro']
+    por_forma = [
+        {
+            'forma': k,
+            'label': FORMAS_LABELS.get(k, k),
+            'total': round(v['total'], 2),
+            'quantidade': v['quantidade'],
+        }
+        for k in ordem_formas if k in totais
+    ]
+
+    ordens_data = []
+    for o in ordens:
+        dividido = bool(o.forma_pagamento_2 and o.valor_pagamento_1 is not None and o.valor_pagamento_2 is not None)
+        ordens_data.append({
+            'id': o.id,
+            'numero': o.numero,
+            'cliente': o.cliente.nome if o.cliente else '',
+            'servico': o.servico.nome if o.servico else '',
+            'valor': float(o.valor),
+            'forma_pagamento': o.forma_pagamento,
+            'forma_pagamento_2': o.forma_pagamento_2 if dividido else None,
+            'valor_pagamento_1': float(o.valor_pagamento_1) if dividido else None,
+            'valor_pagamento_2': float(o.valor_pagamento_2) if dividido else None,
+            'data_faturamento': timezone.localtime(o.data_faturamento).isoformat() if o.data_faturamento else None,
+        })
+
+    return Response({
+        'data': str(data_ref),
+        'total': sum(float(o.valor) for o in ordens),
+        'quantidade': ordens.count(),
+        'por_forma_pagamento': por_forma,
+        'ordens': ordens_data,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsStaffOnly])
+def verificar_pin_view(request):
+    """Verifica se o PIN informado corresponde ao PIN do faturamento."""
+    pin = request.data.get('pin', '')
+    config = ConfiguracaoEmpresa.get()
+
+    if not config.pin_faturamento:
+        return Response({'valido': True})
+
+    if pin == config.pin_faturamento:
+        return Response({'valido': True})
+
+    return Response({'valido': False}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class SaidaCaixaViewSet(ModelViewSet):

@@ -17,6 +17,14 @@ class SaidaCaixaSerializer(serializers.ModelSerializer):
 
 
 class ConfiguracaoEmpresaSerializer(serializers.ModelSerializer):
+    tem_pin = serializers.SerializerMethodField()
+
     class Meta:
         model = ConfiguracaoEmpresa
-        fields = ['nome', 'cnpj', 'email', 'telefone', 'endereco']
+        fields = ['nome', 'cnpj', 'email', 'telefone', 'endereco', 'pin_faturamento', 'tem_pin']
+        extra_kwargs = {
+            'pin_faturamento': {'write_only': True},
+        }
+
+    def get_tem_pin(self, obj):
+        return bool(obj.pin_faturamento)
