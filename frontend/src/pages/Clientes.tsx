@@ -44,11 +44,14 @@ export const Clientes = () => {
       const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (!response.ok) throw new Error();
       const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
+      link.href = downloadUrl;
       link.download = `conta_${cliente.nome.replace(/\s+/g, '_')}.xlsx`;
+      document.body.appendChild(link);
       link.click();
-      window.URL.revokeObjectURL(link.href);
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
       toast.success(`Conta de ${cliente.nome} exportada!`);
     } catch {
       toast.error('Erro ao exportar conta do cliente');

@@ -267,7 +267,7 @@ export const HistoricoOS = () => {
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Histórico de Ordens de Serviço</h1>
             <p className="text-sm sm:text-base text-gray-600 mt-1">Visualize e exporte todo o histórico de OS</p>
           </div>
-          {aba === 'historico' && (
+          {isPatrao() && aba === 'historico' && (
             <button
               onClick={handleExportExcel}
               className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center space-x-2 text-sm sm:text-base"
