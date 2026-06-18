@@ -138,7 +138,10 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
                 {'error': 'Apenas administradores podem cancelar ordens de serviço.'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        instance = self.get_object()
+        try:
+            instance = OrdemServico.objects.get(pk=kwargs['pk'])
+        except OrdemServico.DoesNotExist:
+            return Response({'error': 'OS não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
         instance.status = 'cancelada'
         instance.save(update_fields=['status'])
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -182,13 +185,6 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
     def faturar(self, request, pk=None):
         """Endpoint para faturar uma OS (apenas patrão)."""
         ordem_servico = self.get_object()
-
-        # Verificar se é patrão
-        if not request.user.is_staff:
-            return Response(
-                {'error': 'Apenas o patrão pode faturar uma ordem de serviço.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
 
         # Verificar se a OS está finalizada
         if ordem_servico.status != 'finalizada':

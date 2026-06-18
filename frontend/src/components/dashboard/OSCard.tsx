@@ -1,4 +1,3 @@
-import { useAuth } from '../../contexts/AuthContext';
 import type { OrdemServico } from '../../types';
 import { formatCurrency, formatDate, formatDateTime, getStatusColor } from '../../utils/helpers';
 
@@ -41,9 +40,6 @@ interface OSCardProps {
 }
 
 export const OSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar, onEmitirNota, onToggleEntregue, onEnviarWhatsApp, ordensEnviadasWhatsApp, ordensNotaEmitida }: OSCardProps) => {
-  const { isPatrao } = useAuth();
-  const isPatraoValue = isPatrao();
-
   // Garantir que faturada existe (pode ser undefined)
   const isFaturada = ordem.faturada === true;
   const isEntregue = ordem.entregue === true;
@@ -170,7 +166,7 @@ export const OSCard = ({ ordem, onViewDetails, onChangeStatus, onFaturar, onEmit
 
         {/* Botão Faturar - apenas para patrão, quando status for finalizada E quando estiver entregue
             Aparece tanto para OS pagas na entrada quanto para OS não pagas na entrada */}
-        {ordem.status === 'finalizada' && isPatraoValue && !isFaturada && isEntregue && onFaturar && (
+        {ordem.status === 'finalizada' && !isFaturada && isEntregue && onFaturar && (
           <button
             onClick={() => onFaturar(ordem)}
             className="w-full px-3 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors font-medium"
