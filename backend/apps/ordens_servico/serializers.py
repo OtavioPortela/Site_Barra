@@ -59,6 +59,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
     data_finalizacao = DateTimeFieldISO(read_only=True, allow_null=True)
     data_faturamento = DateTimeFieldISO(read_only=True, allow_null=True)
     faturada = serializers.BooleanField(read_only=True)
+    troco = serializers.SerializerMethodField()
     numero = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     estado_cabelo = serializers.CharField(required=False, allow_blank=True)
     tipo_cabelo = serializers.CharField(required=False, allow_blank=True)
@@ -71,10 +72,22 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
             'tamanho_cabelo_cm', 'cor_linha', 'servico', 'servico_id', 'servico_nome', 'valor_metro',
             'valor', 'data_criacao', 'prazo_entrega', 'data_finalizacao', 'faturada', 'data_faturamento',
             'observacoes', 'usuario_criacao', 'usuario_criacao_nome', 'entregue', 'pago_na_entrega', 'foto_entrega',
-            'forma_pagamento', 'forma_pagamento_2', 'valor_pagamento_1', 'valor_pagamento_2'
+            'forma_pagamento', 'forma_pagamento_2', 'valor_pagamento_1', 'valor_pagamento_2',
+            'valor_recebido', 'troco'
         ]
-        read_only_fields = ['id', 'data_criacao', 'data_finalizacao', 'faturada', 'data_faturamento', 'usuario_criacao']
+        read_only_fields = ['id', 'data_criacao', 'data_finalizacao', 'faturada', 'data_faturamento', 'usuario_criacao', 'troco']
 
+
+    def get_troco(self, obj):
+        if obj.valor_recebido is None:
+            return None
+        # Para pagamento dividido, o dinheiro pode ser a forma 1 ou a única forma
+        if obj.forma_pagamento == 'dinheiro' and obj.valor_pagamento_1 is not None:
+            base = obj.valor_pagamento_1
+        else:
+            base = obj.valor
+        troco = obj.valor_recebido - base
+        return float(troco) if troco >= 0 else 0.0
 
     def get_cliente(self, obj):
         """Retorna o nome do cliente como string para compatibilidade com frontend."""

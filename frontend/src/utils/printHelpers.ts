@@ -51,16 +51,19 @@ export const formatarNotaTermica = (ordem: OrdemServico, _formaPagamentoOverride
 
   // Forma de pagamento (simples ou dividida)
   const dividido = ordem.forma_pagamento_2 && ordem.valor_pagamento_1 != null && ordem.valor_pagamento_2 != null;
+  const trocoStr = (ordem.troco != null && ordem.troco > 0)
+    ? `\nTroco: R$ ${formatCurrency(Number(ordem.troco))}`
+    : '';
   const formaPgtoSection = dividido
     ? `Forma 1: ${getFormaPagamentoLabel(ordem.forma_pagamento)} — R$ ${formatCurrency(Number(ordem.valor_pagamento_1))}
-Forma 2: ${getFormaPagamentoLabel(ordem.forma_pagamento_2!)} — R$ ${formatCurrency(Number(ordem.valor_pagamento_2))}`
+Forma 2: ${getFormaPagamentoLabel(ordem.forma_pagamento_2!)} — R$ ${formatCurrency(Number(ordem.valor_pagamento_2))}${trocoStr}`
     : `Forma de Pagamento: ${
         ordem.forma_pagamento
           ? getFormaPagamentoLabel(ordem.forma_pagamento)
           : ordem.cliente_eh_parceiro
           ? 'Conta do parceiro'
           : 'A definir'
-      }`;
+      }${trocoStr}`;
 
   const observacoesSection = ordem.observacoes
     ? `${'_'.repeat(48)}

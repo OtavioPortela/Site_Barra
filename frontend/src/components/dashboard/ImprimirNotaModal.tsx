@@ -26,6 +26,7 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
   const [pagamentoDividido, setPagamentoDividido] = useState(false);
   const [formaPagamento2, setFormaPagamento2] = useState<'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito' | ''>('');
   const [valorPagamento1, setValorPagamento1] = useState('');
+  const [valorRecebido, setValorRecebido] = useState('');
 
   // Buscar dados completos da OS quando o modal abrir
   useEffect(() => {
@@ -44,7 +45,7 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
           // Inicializar forma de pagamento se já existir na OS
           if (ordemDetalhada.forma_pagamento) {
             setFormaPagamento(ordemDetalhada.forma_pagamento);
-          } else if (ordemDetalhada.pago_na_entrega && !apenasVisualizar) {
+          } else if (ordemDetalhada.pago_na_entrega) {
             // Se for pago na entrega e não for apenas visualizar, definir dinheiro como padrão
             setFormaPagamento('dinheiro');
           } else if (ordemDetalhada.cliente_eh_parceiro && !ordemDetalhada.forma_pagamento) {
@@ -68,6 +69,7 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
       setPagamentoDividido(false);
       setFormaPagamento2('');
       setValorPagamento1('');
+      setValorRecebido('');
     }
   }, [isOpen, ordem, apenasVisualizar]);
 
@@ -81,12 +83,18 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
 
     const total = Number(ordemParaNota.valor);
     const v1 = pagamentoDividido && valorPagamento1 ? parseFloat(valorPagamento1) : null;
+    const fpAtual = (formaPagamento || ordemParaNota.forma_pagamento) as any;
+    const base = (pagamentoDividido && v1 !== null) ? v1 : total;
+    const trocoImprimir = (fpAtual === 'dinheiro' && valorRecebido && !isNaN(parseFloat(valorRecebido)))
+      ? Math.max(0, parseFloat(valorRecebido) - base)
+      : null;
     const ordemParaImprimir = {
       ...ordemParaNota,
-      forma_pagamento: (formaPagamento || ordemParaNota.forma_pagamento) as any,
+      forma_pagamento: fpAtual,
       forma_pagamento_2: pagamentoDividido && formaPagamento2 ? formaPagamento2 : null,
       valor_pagamento_1: v1,
       valor_pagamento_2: v1 !== null ? parseFloat((total - v1).toFixed(2)) : null,
+      troco: trocoImprimir,
     };
 
     imprimirNota(ordemParaImprimir);
@@ -111,33 +119,29 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
   };
 
   const handleConfirmar = async () => {
-    // Validar forma de pagamento (apenas se não for apenas visualizar)
-    // Se for parceiro e marcar adicionar à conta, não precisa validar forma de pagamento
-    if (!apenasVisualizar) {
-      if (ehParceiro && adicionarAConta) {
-        // Parceiro escolheu adicionar à conta, forma_pagamento será null
-      } else if (!ehParceiro && !formaPagamento) {
-        alert('Por favor, selecione a forma de pagamento');
+    if (ehParceiro && adicionarAConta) {
+      // Parceiro escolheu adicionar à conta, forma_pagamento será null
+    } else if (!ehParceiro && !formaPagamento) {
+      alert('Por favor, selecione a forma de pagamento');
+      return;
+    } else if (ehParceiro && !adicionarAConta && !formaPagamento) {
+      alert('Por favor, selecione a forma de pagamento ou adicione à conta do parceiro');
+      return;
+    }
+    if (pagamentoDividido) {
+      if (!formaPagamento2) { alert('Selecione a segunda forma de pagamento'); return; }
+      const v1 = parseFloat(valorPagamento1);
+      const total = ordemParaNota ? Number(ordemParaNota.valor) : 0;
+      if (isNaN(v1) || v1 <= 0 || v1 >= total) {
+        alert(`O valor da primeira forma deve ser entre R$ 0,01 e R$ ${(total - 0.01).toFixed(2)}`);
         return;
-      } else if (ehParceiro && !adicionarAConta && !formaPagamento) {
-        alert('Por favor, selecione a forma de pagamento ou adicione à conta do parceiro');
-        return;
-      }
-      if (pagamentoDividido) {
-        if (!formaPagamento2) { alert('Selecione a segunda forma de pagamento'); return; }
-        const v1 = parseFloat(valorPagamento1);
-        const total = ordemParaNota ? Number(ordemParaNota.valor) : 0;
-        if (isNaN(v1) || v1 <= 0 || v1 >= total) {
-          alert(`O valor da primeira forma deve ser entre R$ 0,01 e R$ ${(total - 0.01).toFixed(2)}`);
-          return;
-        }
       }
     }
 
     setLoading(true);
     try {
       // Salvar forma de pagamento na OS (apenas se não for apenas visualizar)
-      if (ordemParaNota && !apenasVisualizar) {
+      if (ordemParaNota) {
         const formaPagamentoToSave = (ehParceiro && adicionarAConta)
           ? undefined
           : (formaPagamento || undefined);
@@ -145,12 +149,16 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
         const total = Number(ordemParaNota.valor);
         const v1 = pagamentoDividido && valorPagamento1 ? parseFloat(valorPagamento1) : null;
         const v2 = v1 !== null ? parseFloat((total - v1).toFixed(2)) : null;
+        const vRecebido = (formaPagamentoToSave === 'dinheiro' || (formaPagamentoToSave === undefined && ordemParaNota.forma_pagamento === 'dinheiro')) && valorRecebido
+          ? parseFloat(valorRecebido)
+          : null;
 
         await ordemServicoService.update(ordemParaNota.id, {
           forma_pagamento: formaPagamentoToSave,
           forma_pagamento_2: (pagamentoDividido && formaPagamento2) ? formaPagamento2 : null,
           valor_pagamento_1: v1 ?? undefined,
           valor_pagamento_2: v2 ?? undefined,
+          valor_recebido: vRecebido ?? undefined,
         } as any);
 
         // Se for adicionar à conta, não faturar (apenas atualiza o status de pagamento para nulo)
@@ -226,12 +234,18 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
                 {ordemParaNota ? (() => {
                   const total = Number(ordemParaNota.valor);
                   const v1 = pagamentoDividido && valorPagamento1 ? parseFloat(valorPagamento1) : null;
+                  const fpAtual = (formaPagamento || ordemParaNota.forma_pagamento) as any;
+                  const base = (pagamentoDividido && v1 !== null) ? v1 : total;
+                  const trocoPreview = (fpAtual === 'dinheiro' && valorRecebido && !isNaN(parseFloat(valorRecebido)))
+                    ? Math.max(0, parseFloat(valorRecebido) - base)
+                    : null;
                   return formatarNotaTermica({
                     ...ordemParaNota,
-                    forma_pagamento: (formaPagamento || ordemParaNota.forma_pagamento) as any,
+                    forma_pagamento: fpAtual,
                     forma_pagamento_2: pagamentoDividido && formaPagamento2 ? formaPagamento2 : null,
                     valor_pagamento_1: v1,
                     valor_pagamento_2: v1 !== null ? parseFloat((total - v1).toFixed(2)) : null,
+                    troco: trocoPreview,
                   });
                 })() : ''}
               </pre>
@@ -249,8 +263,8 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
             </div>
           )}
 
-          {/* Forma de Pagamento - apenas se não for apenas visualizar */}
-          {!apenasVisualizar && (
+          {/* Forma de Pagamento */}
+          {(
             <div className="mt-4 space-y-4">
               {/* Se for parceiro, mostrar opção de adicionar à conta */}
               {ehParceiro && (
@@ -310,6 +324,48 @@ export const ImprimirNotaModal = ({ isOpen, onClose, onConfirm, onSkip, ordem, a
                       <label htmlFor="pagamentoDividido" className="text-sm text-gray-700 cursor-pointer">
                         Pagamento dividido (duas formas)
                       </label>
+                    </div>
+                  )}
+
+                  {/* Valor recebido (dinheiro) */}
+                  {(formaPagamento === 'dinheiro') && (
+                    <div className="p-3 bg-green-50 rounded-lg border border-green-200 space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Valor recebido (R$)
+                          </label>
+                          <input
+                            type="number"
+                            min={pagamentoDividido && valorPagamento1 ? parseFloat(valorPagamento1) : Number(ordemParaNota?.valor)}
+                            step="0.01"
+                            value={valorRecebido}
+                            onChange={e => setValorRecebido(e.target.value)}
+                            placeholder={pagamentoDividido && valorPagamento1 ? valorPagamento1 : String(ordemParaNota?.valor ?? '')}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Troco
+                          </label>
+                          <div className={`px-3 py-2 rounded-lg text-sm font-semibold ${
+                            valorRecebido && !isNaN(parseFloat(valorRecebido))
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-400'
+                          }`}>
+                            {valorRecebido && !isNaN(parseFloat(valorRecebido))
+                              ? (() => {
+                                  const base = pagamentoDividido && valorPagamento1 ? parseFloat(valorPagamento1) : Number(ordemParaNota?.valor ?? 0);
+                                  const troco = parseFloat(valorRecebido) - base;
+                                  return troco >= 0
+                                    ? `R$ ${troco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                                    : 'Valor insuficiente';
+                                })()
+                              : '—'}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 

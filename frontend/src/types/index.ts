@@ -31,6 +31,8 @@ export interface OrdemServico {
   forma_pagamento_2?: 'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito' | null;
   valor_pagamento_1?: number | null;
   valor_pagamento_2?: number | null;
+  valor_recebido?: number | null;
+  troco?: number | null;
 }
 
 export interface Cliente {

@@ -104,6 +104,9 @@ export const ordemServicoService = {
     cliente?: string;
     data_inicio?: string;
     data_fim?: string;
+    data_faturamento_inicio?: string;
+    data_faturamento_fim?: string;
+    faturada?: string;
     search?: string;
     historico?: string;
     canceladas?: string;
