@@ -113,6 +113,23 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             except ValueError as e:
                 logger.warning(f"data_fim inválida ignorada: '{data_fim}' — {e}")
 
+        data_faturamento_inicio = self.request.query_params.get('data_faturamento_inicio')
+        data_faturamento_fim = self.request.query_params.get('data_faturamento_fim')
+
+        if data_faturamento_inicio:
+            try:
+                dt = datetime.strptime(data_faturamento_inicio, '%Y-%m-%d').date()
+                queryset = queryset.filter(data_faturamento__date__gte=dt)
+            except ValueError as e:
+                logger.warning(f"data_faturamento_inicio inválida ignorada: '{data_faturamento_inicio}' — {e}")
+
+        if data_faturamento_fim:
+            try:
+                dt = datetime.strptime(data_faturamento_fim, '%Y-%m-%d').date()
+                queryset = queryset.filter(data_faturamento__date__lte=dt)
+            except ValueError as e:
+                logger.warning(f"data_faturamento_fim inválida ignorada: '{data_faturamento_fim}' — {e}")
+
         return queryset
 
     def perform_create(self, serializer):

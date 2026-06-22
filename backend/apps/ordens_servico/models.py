@@ -154,6 +154,12 @@ class OrdemServico(models.Model):
         null=True, blank=True,
         verbose_name='Valor — Forma 2',
     )
+    valor_recebido = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        verbose_name='Valor Recebido',
+        help_text='Valor em dinheiro entregue pelo cliente (para cálculo de troco)',
+    )
     foto_entrega = models.ImageField(
         upload_to='fotos_entrega/',
         blank=True,
