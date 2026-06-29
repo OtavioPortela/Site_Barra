@@ -203,7 +203,11 @@ export const FaturadosDia = () => {
                   <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right whitespace-nowrap">
                     {formatCurrency(
                       formaFiltro
-                        ? ordensFiltradas.reduce((s, o) => s + o.valor, 0)
+                        ? ordensFiltradas.reduce((s, o) => {
+                            const dividido = o.forma_pagamento_2 && o.valor_pagamento_1 != null && o.valor_pagamento_2 != null;
+                            if (!dividido) return s + o.valor;
+                            return s + (o.forma_pagamento === formaFiltro ? o.valor_pagamento_1! : o.valor_pagamento_2!);
+                          }, 0)
                         : resultado.total
                     )}
                   </td>
