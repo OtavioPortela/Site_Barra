@@ -260,15 +260,6 @@ def configuracao_empresa_view(request):
 @permission_classes([IsAuthenticated, IsStaffOnly])
 def faturados_no_dia_view(request):
     """Retorna OS faturadas em uma data específica, agrupadas por forma de pagamento."""
-    import traceback
-    try:
-        return _faturados_no_dia_impl(request)
-    except Exception as e:
-        logger.error('faturados_no_dia_view ERRO: %s\n%s', e, traceback.format_exc())
-        return Response({'debug_error': str(e), 'traceback': traceback.format_exc()}, status=500)
-
-
-def _faturados_no_dia_impl(request):
     data_str = request.query_params.get('data')
 
     if not data_str:
@@ -319,8 +310,8 @@ def _faturados_no_dia_impl(request):
         {
             'forma': k,
             'label': FORMAS_LABELS.get(k, k),
-            'total': round(v['total'], 2),
-            'quantidade': v['quantidade'],
+            'total': round(totais[k]['total'], 2),
+            'quantidade': totais[k]['quantidade'],
         }
         for k in ordem_formas if k in totais
     ]
