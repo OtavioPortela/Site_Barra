@@ -53,6 +53,7 @@ export const Caixa = () => {
       const [lancamentosData, osData] = await Promise.all([
         saidaCaixaService.getAll({ data_inicio: dataInicio, data_fim: dataFim }),
         ordemServicoService.getAll({
+          historico: 'true',
           faturada: 'true',
           data_faturamento_inicio: dataInicio,
           data_faturamento_fim: dataFim,
