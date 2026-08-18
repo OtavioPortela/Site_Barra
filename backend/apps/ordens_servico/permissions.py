@@ -44,13 +44,21 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
             if data_keys == {'status'} or data_keys == {'status', 'csrfmiddlewaretoken'}:
                 return True
 
-        # Permitir atualização de entregue, foto_entrega e forma_pagamento para qualquer usuário autenticado
+        # Permitir atualização dos campos de entrega e pagamento para qualquer usuário autenticado
         if request.method == 'PATCH' and request.data:
             data_keys = set(request.data.keys())
 
-            # Se estiver atualizando apenas entregue e/ou foto_entrega e/ou forma_pagamento, permitir
+            # Campos que o fechamento da nota grava na OS (ImprimirNotaModal).
+            # Todos precisam estar aqui: o modal envia forma_pagamento_2 em toda
+            # emissão (null quando o pagamento não é dividido), então uma lista
+            # incompleta derruba o fluxo inteiro com 403 para quem não criou a OS.
             # FormData pode ter outros campos, então verificamos se os campos principais são apenas esses
-            allowed_keys = {'entregue', 'foto_entrega', 'forma_pagamento'}
+            allowed_keys = {
+                'entregue', 'foto_entrega',
+                'forma_pagamento', 'forma_pagamento_2',
+                'valor_pagamento_1', 'valor_pagamento_2',
+                'valor_recebido',
+            }
 
             # Verificar se está atualizando algum dos campos permitidos
             if any(key in data_keys for key in allowed_keys):

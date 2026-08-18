@@ -71,6 +71,11 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         """Filtra queryset baseado em parâmetros de data."""
         queryset = super().get_queryset()
 
+        # Faturamento é informação restrita ao patrão: quem não é staff nunca
+        # recebe OS faturadas, independente dos filtros que mandar na query.
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(faturada=False)
+
         faturada_filter = self.request.query_params.get('faturada')
         historico = self.request.query_params.get('historico')
         canceladas = self.request.query_params.get('canceladas')

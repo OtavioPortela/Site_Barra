@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { saidaCaixaService, ordemServicoService } from '../services/api';
 import toast from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 import type { SaidaCaixa, OrdemServico } from '../types';
 
 const CATEGORIAS = [
@@ -38,6 +39,9 @@ const formatDateBR = (iso: string) =>
   new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR');
 
 export const Caixa = () => {
+  const { isPatrao } = useAuth();
+  // Funcionário usa o caixa para os próprios lançamentos, mas não vê faturamento
+  const podeVerFaturamento = isPatrao();
   const [lancamentos, setLancamentos] = useState<SaidaCaixa[]>([]);
   const [osFaturadas, setOsFaturadas] = useState<OrdemServico[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,12 +56,14 @@ export const Caixa = () => {
       setLoading(true);
       const [lancamentosData, osData] = await Promise.all([
         saidaCaixaService.getAll({ data_inicio: dataInicio, data_fim: dataFim }),
-        ordemServicoService.getAll({
-          historico: 'true',
-          faturada: 'true',
-          data_faturamento_inicio: dataInicio,
-          data_faturamento_fim: dataFim,
-        }),
+        podeVerFaturamento
+          ? ordemServicoService.getAll({
+              historico: 'true',
+              faturada: 'true',
+              data_faturamento_inicio: dataInicio,
+              data_faturamento_fim: dataFim,
+            })
+          : Promise.resolve([] as OrdemServico[]),
       ]);
       setLancamentos(lancamentosData);
       setOsFaturadas(osData);
@@ -66,7 +72,7 @@ export const Caixa = () => {
     } finally {
       setLoading(false);
     }
-  }, [dataInicio, dataFim]);
+  }, [dataInicio, dataFim, podeVerFaturamento]);
 
   useEffect(() => {
     loadData();
@@ -192,18 +198,21 @@ export const Caixa = () => {
             {isPeriodoUmDia
               ? `Exibindo: ${formatDateBR(dataInicio)}`
               : `Exibindo: ${formatDateBR(dataInicio)} até ${formatDateBR(dataFim)}`}
-            {' · '}{osFaturadas.length} OS faturada{osFaturadas.length !== 1 ? 's' : ''} · {lancamentos.length} lançamento{lancamentos.length !== 1 ? 's' : ''}
+            {podeVerFaturamento && `${' · '}${osFaturadas.length} OS faturada${osFaturadas.length !== 1 ? 's' : ''}`}
+            {' · '}{lancamentos.length} lançamento{lancamentos.length !== 1 ? 's' : ''}
           </p>
         )}
       </div>
 
       {/* Cards de resumo */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase font-medium mb-1">OS Faturadas</p>
-          <p className="text-xl font-bold text-blue-600">{formatCurrency(totalOS)}</p>
-          <p className="text-xs text-gray-400 mt-1">{osFaturadas.length} ordem{osFaturadas.length !== 1 ? 's' : ''}</p>
-        </div>
+      <div className={`grid grid-cols-2 gap-3 mb-6 ${podeVerFaturamento ? 'md:grid-cols-4' : 'md:grid-cols-2'}`}>
+        {podeVerFaturamento && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p className="text-xs text-gray-500 uppercase font-medium mb-1">OS Faturadas</p>
+            <p className="text-xl font-bold text-blue-600">{formatCurrency(totalOS)}</p>
+            <p className="text-xs text-gray-400 mt-1">{osFaturadas.length} ordem{osFaturadas.length !== 1 ? 's' : ''}</p>
+          </div>
+        )}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <p className="text-xs text-gray-500 uppercase font-medium mb-1">Entradas manuais</p>
           <p className="text-xl font-bold text-green-600">{formatCurrency(totalEntradas)}</p>
@@ -212,15 +221,17 @@ export const Caixa = () => {
           <p className="text-xs text-gray-500 uppercase font-medium mb-1">Saídas manuais</p>
           <p className="text-xl font-bold text-red-600">{formatCurrency(totalSaidas)}</p>
         </div>
-        <div className={`rounded-lg shadow-sm border p-4 ${saldoFinal >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-          <p className="text-xs text-gray-500 uppercase font-medium mb-1">Saldo</p>
-          <p className={`text-xl font-bold ${saldoFinal >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-            {formatCurrency(saldoFinal)}
-          </p>
-          {totalTroco > 0 && (
-            <p className="text-xs text-gray-400 mt-1">Troco: −{formatCurrency(totalTroco)}</p>
-          )}
-        </div>
+        {podeVerFaturamento && (
+          <div className={`rounded-lg shadow-sm border p-4 ${saldoFinal >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+            <p className="text-xs text-gray-500 uppercase font-medium mb-1">Saldo</p>
+            <p className={`text-xl font-bold ${saldoFinal >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+              {formatCurrency(saldoFinal)}
+            </p>
+            {totalTroco > 0 && (
+              <p className="text-xs text-gray-400 mt-1">Troco: −{formatCurrency(totalTroco)}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Formulário */}

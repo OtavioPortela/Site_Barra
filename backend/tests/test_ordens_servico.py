@@ -75,6 +75,10 @@ class OrdemServicoListCreateTest(TestCase):
         self.assertNotIn('OS-002', numeros)
 
     def test_listar_os_historico_inclui_faturadas(self):
+        # Histórico com faturadas é informação de faturamento: só o patrão vê
+        criar_usuario(email='patrao@barra.com', is_staff=True)
+        self.client.credentials()
+        autenticar(self.client, email='patrao@barra.com')
         criar_os(self.usuario, self.cliente, self.servico, numero='OS-001', faturada=False)
         criar_os(self.usuario, self.cliente, self.servico, numero='OS-002', faturada=True)
         response = self.client.get('/api/ordens-servico/?historico=1')
@@ -187,11 +191,21 @@ class FaturarOSTest(TestCase):
         self.assertTrue(self.os.faturada)
         self.assertIsNotNone(self.os.data_faturamento)
 
-    def test_faturar_os_sem_permissao(self):
+    def test_faturar_os_sem_autenticacao(self):
+        self.client.credentials()
+        response = self.client.post(f'/api/ordens-servico/{self.os.id}/faturar/')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_desfaturar_os_sem_permissao(self):
+        # Faturar é operação de balcão (o funcionário fecha a nota e fatura),
+        # mas desfaturar é privilégio do patrão.
+        self.os.faturada = True
+        self.os.data_faturamento = timezone.now()
+        self.os.save()
         criar_usuario(email='func@barra.com', is_staff=False)
         self.client.credentials()
         autenticar(self.client, email='func@barra.com')
-        response = self.client.post(f'/api/ordens-servico/{self.os.id}/faturar/')
+        response = self.client.post(f'/api/ordens-servico/{self.os.id}/desfaturar/')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_desfaturar_os(self):
@@ -298,3 +312,110 @@ class CancelarOSTest(TestCase):
         numeros = [o['numero'] for o in response.data]
         self.assertIn('OS-CANX', numeros)
         self.assertNotIn('OS-ATIVA', numeros)
+
+
+class FecharNotaFuncionarioTest(TestCase):
+    """Funcionário fechando a nota de uma OS criada por outra pessoa.
+
+    O modal de nota grava forma de pagamento, pagamento dividido e valor
+    recebido num único PATCH. Se a permissão não cobrir todos esses campos,
+    o funcionário leva 403 e não consegue faturar (bug visto em produção).
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.patrao = criar_usuario(email='patrao@barra.com', is_staff=True)
+        criar_usuario(email='func@barra.com', is_staff=False)
+        self.cliente = criar_cliente()
+        self.servico = criar_servico()
+        # OS aberta pelo patrão — o funcionário não é o usuario_criacao
+        self.os = criar_os(
+            self.patrao, self.cliente, self.servico,
+            numero='OS-NOTA', status='finalizada', entregue=True,
+        )
+        autenticar(self.client, email='func@barra.com')
+
+    def test_marcar_entregue_em_os_de_outro(self):
+        response = self.client.patch(
+            f'/api/ordens-servico/{self.os.id}/', {'entregue': True}, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_fechar_nota_pagamento_simples(self):
+        # forma_pagamento_2 vai como null em toda emissão, mesmo sem divisão
+        response = self.client.patch(
+            f'/api/ordens-servico/{self.os.id}/',
+            {'forma_pagamento': 'pix', 'forma_pagamento_2': None},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.os.refresh_from_db()
+        self.assertEqual(self.os.forma_pagamento, 'pix')
+
+    def test_fechar_nota_pagamento_dividido(self):
+        response = self.client.patch(
+            f'/api/ordens-servico/{self.os.id}/',
+            {
+                'forma_pagamento': 'dinheiro',
+                'forma_pagamento_2': 'pix',
+                'valor_pagamento_1': 40,
+                'valor_pagamento_2': 60,
+                'valor_recebido': 50,
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.os.refresh_from_db()
+        self.assertEqual(self.os.forma_pagamento_2, 'pix')
+
+    def test_funcionario_fatura_os_de_outro(self):
+        self.os.forma_pagamento = 'pix'
+        self.os.save()
+        response = self.client.post(f'/api/ordens-servico/{self.os.id}/faturar/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.os.refresh_from_db()
+        self.assertTrue(self.os.faturada)
+
+    def test_editar_valor_de_os_de_outro_continua_negado(self):
+        response = self.client.patch(
+            f'/api/ordens-servico/{self.os.id}/', {'valor': 999}, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class FaturadasOcultasParaFuncionarioTest(TestCase):
+    """OS faturadas não podem chegar a quem não é staff, por nenhum filtro."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.patrao = criar_usuario(email='patrao@barra.com', is_staff=True)
+        criar_usuario(email='func@barra.com', is_staff=False)
+        self.cliente = criar_cliente()
+        self.servico = criar_servico()
+        criar_os(self.patrao, self.cliente, self.servico, numero='OS-ABERTA', faturada=False)
+        criar_os(self.patrao, self.cliente, self.servico, numero='OS-FATURADA', faturada=True)
+
+    def _numeros(self, response):
+        data = response.data
+        resultados = data.get('results', data) if isinstance(data, dict) else data
+        return [os['numero'] for os in resultados]
+
+    def test_historico_oculta_faturadas_para_funcionario(self):
+        autenticar(self.client, email='func@barra.com')
+        response = self.client.get('/api/ordens-servico/?historico=1')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        numeros = self._numeros(response)
+        self.assertIn('OS-ABERTA', numeros)
+        self.assertNotIn('OS-FATURADA', numeros)
+
+    def test_filtro_faturada_true_volta_vazio_para_funcionario(self):
+        autenticar(self.client, email='func@barra.com')
+        response = self.client.get('/api/ordens-servico/?historico=1&faturada=true')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self._numeros(response), [])
+
+    def test_patrao_continua_vendo_faturadas(self):
+        autenticar(self.client, email='patrao@barra.com')
+        response = self.client.get('/api/ordens-servico/?historico=1&faturada=true')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('OS-FATURADA', self._numeros(response))

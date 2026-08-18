@@ -348,7 +348,7 @@ export const HistoricoOS = () => {
               className="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
             >
               <option value="">Todas</option>
-              <option value="true">Faturadas</option>
+              {isPatrao() && <option value="true">Faturadas</option>}
               <option value="false">Não Faturadas</option>
             </select>
           </div>
