@@ -26,6 +26,14 @@ export const whatsappService = {
     return response.data;
   },
 
+  async enviarNotaDebitos(parceiroId: number, numero?: string) {
+    const response = await api.post('/whatsapp/enviar-nota-debitos/', {
+      parceiro_id: parceiroId,
+      ...(numero ? { numero } : {}),
+    });
+    return response.data;
+  },
+
   async enviarOSCriada(numero: string, ordemServicoId: number) {
     const response = await api.post('/whatsapp/enviar-os-criada/', {
       numero,

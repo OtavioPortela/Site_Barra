@@ -115,11 +115,11 @@ function AppRoutes() {
       <Route
         path="/debitos"
         element={
-          <ProtectedRoutePatrao>
+          <ProtectedRoute>
             <AppLayout>
               <Debitos />
             </AppLayout>
-          </ProtectedRoutePatrao>
+          </ProtectedRoute>
         }
       />
       <Route

@@ -372,3 +372,86 @@ _A Limpeza e mesclagem é somente com autorização da cliente._
 _(qualquer metragem inferior a 1 metro, será cobrado ao valor do metro)_"""
 
     return mensagem
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def enviar_nota_debitos(request):
+    """
+    Envia a nota de débitos de um parceiro em PDF via WhatsApp.
+    Body: {
+        "parceiro_id": 12,
+        "numero": "31999999999"   # opcional — por padrão usa o telefone do cadastro
+    }
+    """
+    from apps.ordens_servico.models import Cliente
+    from apps.ordens_servico import notas_debito
+
+    parceiro_id = request.data.get('parceiro_id')
+
+    if not parceiro_id:
+        return Response(
+            {'error': 'parceiro_id é obrigatório'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        parceiro = Cliente.objects.get(id=parceiro_id, eh_parceiro=True)
+    except Cliente.DoesNotExist:
+        return Response(
+            {'error': 'Cliente parceiro não encontrado'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    numero = request.data.get('numero') or parceiro.telefone
+    if not numero:
+        return Response(
+            {'error': f'{parceiro.nome} não tem telefone cadastrado.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    debitos = list(notas_debito.buscar_debitos(parceiro))
+    if not debitos:
+        return Response(
+            {'error': f'{parceiro.nome} não tem débitos em aberto.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    total = notas_debito.total_debitos(debitos)
+    legenda = (
+        f"Olá, {parceiro.nome}! 👋\n\n"
+        f"Segue a nota da sua conta em aberto na Barra Confecções.\n\n"
+        f"* Pedidos em aberto: {len(debitos)}\n"
+        f"* Total: {notas_debito.formatar_moeda(total)}\n\n"
+        f"Qualquer dúvida é só chamar por aqui. Obrigado pela parceria! 🙏"
+    )
+
+    try:
+        pdf_bytes = notas_debito.gerar_pdf(parceiro, debitos)
+        arquivo = notas_debito.nome_arquivo(parceiro, 'pdf')
+
+        service = WhatsAppService()
+        resultado = service.enviar_documento(
+            numero, pdf_bytes, arquivo, extensao='pdf', legenda=legenda,
+        )
+
+        logger.info(
+            f"Nota de débitos enviada para {parceiro.nome} ({numero}) por {request.user.email}: "
+            f"{len(debitos)} OS, total {total}"
+        )
+
+        return Response({
+            'success': True,
+            'mensagem': f'Nota enviada para {parceiro.nome}',
+            'quantidade_os': len(debitos),
+            'detalhes': resultado,
+        })
+    except ValueError as e:
+        logger.error(f"Erro de configuração Z-API: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    except Exception as e:
+        logger.error(f"Erro ao enviar nota de débitos do parceiro {parceiro_id}: {e}", exc_info=True)
+        return Response(
+            {'error': 'Não foi possível enviar a nota pelo WhatsApp. Tente novamente.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

@@ -1,3 +1,4 @@
+import base64
 import requests
 from django.conf import settings
 import logging
@@ -117,6 +118,52 @@ class WhatsAppService:
             return resultado
         except requests.exceptions.HTTPError as e:
             logger.error(f"Erro HTTP ao enviar imagem Z-API: {e.response.status_code} — {e.response.text}")
+            raise
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Erro de conexão com Z-API: {e}")
+            raise
+
+    def enviar_documento(self, numero, conteudo, nome_arquivo, extensao='pdf', legenda=''):
+        """
+        Envia documento via Z-API.
+
+        Args:
+            numero: Telefone do destinatário
+            conteudo: bytes do arquivo, ou URL pública dele
+            nome_arquivo: nome que o destinatário verá no WhatsApp
+            extensao: extensão do arquivo (define o endpoint da Z-API)
+            legenda: texto que acompanha o documento
+
+        Returns:
+            dict: Resposta da Z-API
+        """
+        self._checar_configuracao()
+
+        numero_formatado = self._formatar_numero(numero)
+        url = f'{self._base_url()}/send-document/{extensao}'
+
+        if isinstance(conteudo, bytes):
+            # A Z-API aceita data URI em base64 — evita ter que hospedar o arquivo
+            documento = f'data:application/{extensao};base64,{base64.b64encode(conteudo).decode()}'
+        else:
+            documento = conteudo
+
+        payload = {
+            'phone': numero_formatado,
+            'document': documento,
+            'fileName': nome_arquivo,
+        }
+        if legenda:
+            payload['caption'] = legenda
+
+        try:
+            response = requests.post(url, json=payload, headers=self._headers(), timeout=30)
+            response.raise_for_status()
+            resultado = response.json()
+            logger.info(f"Documento '{nome_arquivo}' enviado via Z-API para {numero_formatado}. Resposta: {resultado}")
+            return resultado
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"Erro HTTP ao enviar documento Z-API: {e.response.status_code} — {e.response.text}")
             raise
         except requests.exceptions.RequestException as e:
             logger.error(f"Erro de conexão com Z-API: {e}")

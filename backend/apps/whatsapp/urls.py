@@ -9,4 +9,5 @@ urlpatterns = [
     path('enviar-imagem/', views.enviar_imagem, name='enviar_imagem'),
     path('enviar-nota-os/', views.enviar_nota_os, name='enviar_nota_os'),
     path('enviar-os-criada/', views.enviar_os_criada, name='enviar_os_criada'),
+    path('enviar-nota-debitos/', views.enviar_nota_debitos, name='enviar_nota_debitos'),
 ]

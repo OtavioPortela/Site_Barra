@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { debitoService, clienteService } from '../services/api';
+import { whatsappService } from '../services/whatsappService';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import toast from 'react-hot-toast';
@@ -14,6 +15,9 @@ export const Debitos = () => {
   const [loadingParceiros, setLoadingParceiros] = useState(true);
   const [showMarcarPagoModal, setShowMarcarPagoModal] = useState(false);
   const [debitoSelecionado, setDebitoSelecionado] = useState<Debito | null>(null);
+  const [enviandoNota, setEnviandoNota] = useState(false);
+  // O funcionário envia a nota ao parceiro, mas o total a receber é do patrão
+  const podeVerTotais = isPatrao();
 
   useEffect(() => {
     loadClientesParceiros();
@@ -81,6 +85,37 @@ export const Debitos = () => {
     } catch (error) {
       console.error('Erro ao exportar nota:', error);
       toast.error('Erro ao exportar nota');
+    }
+  };
+
+  const handleEnviarNotaWhatsApp = async () => {
+    if (!parceiroSelecionado) {
+      toast.error('Selecione um parceiro primeiro');
+      return;
+    }
+
+    const parceiro = clientesParceiros.find(c => c.id === parceiroSelecionado);
+    if (!parceiro?.telefone) {
+      toast.error('Este parceiro não tem telefone cadastrado');
+      return;
+    }
+
+    if (!window.confirm(`Enviar a nota de débitos para ${parceiro.nome} no WhatsApp ${parceiro.telefone}?`)) {
+      return;
+    }
+
+    try {
+      setEnviandoNota(true);
+      const resultado = await whatsappService.enviarNotaDebitos(parceiroSelecionado);
+      toast.success(resultado.mensagem || `Nota enviada para ${parceiro.nome}`);
+    } catch (error: any) {
+      const mensagem = error.response?.data?.error ||
+                       error.response?.data?.detail ||
+                       'Erro ao enviar a nota pelo WhatsApp';
+      toast.error(mensagem);
+      console.error('Erro ao enviar nota de débitos:', error);
+    } finally {
+      setEnviandoNota(false);
     }
   };
 
@@ -198,11 +233,13 @@ export const Debitos = () => {
 
       {/* Resumo */}
       {parceiroSelecionado && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="text-sm text-gray-600">Total Pendente</div>
-            <div className="text-2xl font-bold text-gray-800">{formatCurrency(totalPendente)}</div>
-          </div>
+        <div className={`grid grid-cols-1 gap-4 mb-6 ${podeVerTotais ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+          {podeVerTotais && (
+            <div className="bg-white p-4 rounded-lg shadow">
+              <div className="text-sm text-gray-600">Total Pendente</div>
+              <div className="text-2xl font-bold text-gray-800">{formatCurrency(totalPendente)}</div>
+            </div>
+          )}
           <div className="bg-white p-4 rounded-lg shadow">
             <div className="text-sm text-gray-600">Quantidade de OS</div>
             <div className="text-2xl font-bold text-gray-800">{quantidadeOS}</div>
@@ -225,12 +262,22 @@ export const Debitos = () => {
             <span>Exportar Nota</span>
           </button>
           <button
-            onClick={handleExportacaoCompleta}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center space-x-2"
+            onClick={handleEnviarNotaWhatsApp}
+            disabled={enviandoNota}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span>📊</span>
-            <span>Exportação Completa</span>
+            <span>📱</span>
+            <span>{enviandoNota ? 'Enviando...' : 'Enviar por WhatsApp'}</span>
           </button>
+          {podeVerTotais && (
+            <button
+              onClick={handleExportacaoCompleta}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center space-x-2"
+            >
+              <span>📊</span>
+              <span>Exportação Completa</span>
+            </button>
+          )}
         </div>
       )}
 

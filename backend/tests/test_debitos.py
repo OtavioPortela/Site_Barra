@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
@@ -179,3 +181,70 @@ class ReverterPagamentoTest(TestCase):
         debito_pendente = criar_os_debito(self.admin, self.parceiro, numero='OS-REV02')
         response = self.client.patch(f'/api/debitos/{debito_pendente.id}/reverter-pagamento/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class EnviarNotaDebitosWhatsAppTest(TestCase):
+    """Envio da nota de débitos por WhatsApp — função liberada ao funcionário."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.funcionario = criar_usuario(email='func@barra.com', is_staff=False)
+        self.parceiro = criar_parceiro()
+        criar_os_debito(self.funcionario, self.parceiro, numero='OS-W001')
+        criar_os_debito(self.funcionario, self.parceiro, numero='OS-W002')
+        autenticar(self.client, 'func@barra.com')
+
+    @patch('apps.whatsapp.service.WhatsAppService.enviar_documento')
+    def test_funcionario_envia_nota(self, mock_envio):
+        mock_envio.return_value = {'messageId': 'ABC123'}
+        response = self.client.post('/api/whatsapp/enviar-nota-debitos/', {
+            'parceiro_id': self.parceiro.id,
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(response.data['quantidade_os'], 2)
+
+        # PDF gerado e enviado para o telefone do cadastro
+        args, kwargs = mock_envio.call_args
+        self.assertEqual(args[0], self.parceiro.telefone)
+        self.assertIsInstance(args[1], bytes)
+        self.assertTrue(args[1].startswith(b'%PDF'))
+        self.assertIn('nota_debitos', args[2])
+        self.assertIn('R$ 400,00', kwargs['legenda'])
+
+    @patch('apps.whatsapp.service.WhatsAppService.enviar_documento')
+    def test_numero_explicito_tem_prioridade(self, mock_envio):
+        mock_envio.return_value = {}
+        response = self.client.post('/api/whatsapp/enviar-nota-debitos/', {
+            'parceiro_id': self.parceiro.id,
+            'numero': '31988887777',
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(mock_envio.call_args[0][0], '31988887777')
+
+    @patch('apps.whatsapp.service.WhatsAppService.enviar_documento')
+    def test_parceiro_sem_debitos_retorna_400(self, mock_envio):
+        outro = Cliente.objects.create(nome='Sem Debito', telefone='31900000000', eh_parceiro=True)
+        response = self.client.post('/api/whatsapp/enviar-nota-debitos/', {
+            'parceiro_id': outro.id,
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        mock_envio.assert_not_called()
+
+    def test_cliente_nao_parceiro_retorna_404(self):
+        comum = Cliente.objects.create(nome='Cliente Comum', telefone='31911112222', eh_parceiro=False)
+        response = self.client.post('/api/whatsapp/enviar-nota-debitos/', {
+            'parceiro_id': comum.id,
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_sem_parceiro_id_retorna_400(self):
+        response = self.client.post('/api/whatsapp/enviar-nota-debitos/', {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_sem_autenticacao_retorna_401(self):
+        self.client.credentials()
+        response = self.client.post('/api/whatsapp/enviar-nota-debitos/', {
+            'parceiro_id': self.parceiro.id,
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

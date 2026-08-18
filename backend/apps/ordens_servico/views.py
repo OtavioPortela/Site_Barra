@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from .models import Cliente, OrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
+from . import notas_debito
 from .permissions import IsStaffOnly
 from .serializers import (
     ClienteSerializer,
@@ -545,10 +546,7 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
         # Buscar débitos do parceiro
-        debitos = OrdemServico.objects.filter(
-            cliente_id=parceiro_id,
-            forma_pagamento__isnull=True
-        ).order_by('data_criacao')
+        debitos = notas_debito.buscar_debitos(parceiro)
 
         if formato == 'excel':
             # Criar workbook
@@ -625,15 +623,15 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
                 ws.cell(row=row, column=5, value=valor)
                 total += valor
 
-            # Rodapé com total
+            # Rodapé com total — a tabela vai de A a E, então o valor fecha em E
             row += 2
-            ws.merge_cells(f'C{row}:E{row}')
+            ws.merge_cells(f'C{row}:D{row}')
             ws[f'C{row}'] = 'TOTAL:'
             ws[f'C{row}'].font = Font(bold=True, size=12)
             ws[f'C{row}'].alignment = Alignment(horizontal='right')
-            ws[f'F{row}'] = total
-            ws[f'F{row}'].font = Font(bold=True, size=12)
-            ws[f'F{row}'].number_format = '#,##0.00'
+            ws[f'E{row}'] = total
+            ws[f'E{row}'].font = Font(bold=True, size=12)
+            ws[f'E{row}'].number_format = '#,##0.00'
 
             # Ajustar largura das colunas
             ws.column_dimensions['A'].width = 15
@@ -653,64 +651,9 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
             wb.save(response)
             return response
 
-        # Geração de PDF com reportlab
-        from io import BytesIO
-        from reportlab.lib.pagesizes import A4
-        from reportlab.lib import colors
-        from reportlab.lib.units import cm
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.enums import TA_CENTER, TA_RIGHT
-
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
-        styles = getSampleStyleSheet()
-        titulo_style = ParagraphStyle('titulo', parent=styles['Title'], fontSize=16, alignment=TA_CENTER)
-        subtitulo_style = ParagraphStyle('subtitulo', parent=styles['Normal'], fontSize=12, alignment=TA_CENTER)
-        bold_style = ParagraphStyle('bold', parent=styles['Normal'], fontName='Helvetica-Bold')
-        total_style = ParagraphStyle('total', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=12, alignment=TA_RIGHT)
-
-        elementos = []
-        elementos.append(Paragraph('BARRA CONFECÇÕES LTDA', titulo_style))
-        elementos.append(Paragraph('Nota de Débitos — Parceiro', subtitulo_style))
-        elementos.append(Spacer(1, 0.5*cm))
-        elementos.append(Paragraph(f'<b>Cliente:</b> {parceiro.nome}', styles['Normal']))
-        if parceiro.cnpj_cpf:
-            elementos.append(Paragraph(f'<b>CNPJ/CPF:</b> {parceiro.cnpj_cpf}', styles['Normal']))
-        if parceiro.telefone:
-            elementos.append(Paragraph(f'<b>Telefone:</b> {parceiro.telefone}', styles['Normal']))
-        if parceiro.endereco:
-            elementos.append(Paragraph(f'<b>Endereço:</b> {parceiro.endereco}', styles['Normal']))
-        elementos.append(Paragraph(f'<b>Data de Emissão:</b> {timezone.localtime().strftime("%d/%m/%Y %H:%M")}', styles['Normal']))
-        elementos.append(Spacer(1, 0.5*cm))
-
-        dados = [['Data', 'OS', 'Descrição/Serviço', 'Cliente-Descrição', 'Valor (R$)']]
-        total = 0
-        for debito in debitos:
-            data_str = timezone.localtime(debito.data_criacao).strftime('%d/%m/%Y') if debito.data_criacao else '-'
-            descricao = debito.servico.nome if debito.servico else (debito.descricao or '-')
-            valor = float(debito.valor) if debito.valor else 0
-            total += valor
-            dados.append([data_str, debito.numero, descricao, debito.descricao_cliente or '', f'R$ {valor:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')])
-
-        dados.append(['', '', 'TOTAL:', '', f'R$ {total:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')])
-
-        tabela = Table(dados, colWidths=[2.5*cm, 2.5*cm, 6*cm, 4*cm, 2.5*cm])
-        tabela.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#366092')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('ALIGN', (2, 1), (3, -1), 'LEFT'),
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-            ('GRID', (0, 0), (-1, -2), 0.5, colors.grey),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f5f5f5')]),
-        ]))
-        elementos.append(tabela)
-        doc.build(elementos)
-        buffer.seek(0)
-        response = HttpResponse(buffer, content_type='application/pdf')
-        nome_arquivo = f'nota_debitos_{parceiro.nome.replace(" ", "_")}_{timezone.localtime().strftime("%Y%m%d")}.pdf'
-        response['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
+        # Geração de PDF reaproveitando a mesma nota do envio por WhatsApp
+        pdf_bytes = notas_debito.gerar_pdf(parceiro, debitos)
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        arquivo = notas_debito.nome_arquivo(parceiro, 'pdf')
+        response['Content-Disposition'] = f'attachment; filename="{arquivo}"'
         return response
-

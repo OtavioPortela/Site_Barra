@@ -22,7 +22,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     { path: '/historico-os',label: 'Histórico OS', icon: '📋', requiresStaff: false },
     { path: '/clientes',    label: 'Clientes',     icon: '👥', requiresStaff: false },
     { path: '/caixa',       label: 'Caixa',        icon: '💵', requiresStaff: false },
-    { path: '/debitos',     label: 'Débitos',      icon: '📝', requiresStaff: true  },
+    { path: '/debitos',     label: 'Débitos',      icon: '📝', requiresStaff: false },
     { path: '/funcionarios',label: 'Funcionários', icon: '👔', requiresStaff: true  },
     { path: '/configuracoes',label:'Configurações',icon: '⚙️', requiresStaff: true  },
   ].filter(item => !item.requiresStaff || isPatraoValue);
