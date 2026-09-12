@@ -12,6 +12,7 @@ import { ordemServicoService } from '../../services/api';
 import { whatsappService } from '../../services/whatsappService';
 import type { OrdemServico } from '../../types';
 import { ImprimirNotaModal } from './ImprimirNotaModal';
+import { FinalizarOSModal, type MedidasFinais } from './FinalizarOSModal';
 import { OSCard } from './OSCard';
 import { OSColumn } from './OSColumn';
 import { Icon } from '../common/Icon';
@@ -37,6 +38,7 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
   const [showImprimirNotaModal, setShowImprimirNotaModal] = useState(false);
   const [ordensEnviadasWhatsApp, setOrdensEnviadasWhatsApp] = useState<Set<number>>(new Set());
   const [ordensNotaEmitida, setOrdensNotaEmitida] = useState<Set<number>>(new Set());
+  const [ordemParaFinalizar, setOrdemParaFinalizar] = useState<OrdemServico | null>(null);
   // Página de cada coluna fica aqui: as colunas são desmontadas a cada recarga (spinner)
   const [paginas, setPaginas] = useState<Record<ColunaId, number>>(PAGINAS_INICIAIS);
   const mudarPaginaColuna = useCallback((coluna: ColunaId, pagina: number) => {
@@ -116,6 +118,12 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
   const updateStatus = async (ordem: OrdemServico, newStatus: OrdemServico['status']) => {
     if (ordem.status === newStatus) return;
 
+    // Finalizar pede o peso final (controle de perdas) antes de chamar a API
+    if (newStatus === 'finalizada') {
+      setOrdemParaFinalizar(ordem);
+      return;
+    }
+
     // Removida a restrição - agora todos podem finalizar
     try {
       await ordemServicoService.updateStatus(ordem.id, newStatus);
@@ -129,6 +137,15 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
       toast.error(errorMessage);
       console.error(error);
     }
+  };
+
+  const concluirFinalizacao = async (medidas?: MedidasFinais) => {
+    if (!ordemParaFinalizar) return;
+    // Erros sobem para o modal, que mostra a mensagem do backend
+    await ordemServicoService.updateStatus(ordemParaFinalizar.id, 'finalizada', medidas);
+    setOrdemParaFinalizar(null);
+    await loadOrdens();
+    toast.success('OS finalizada!');
   };
 
   const handleFaturar = (ordem: OrdemServico) => {
@@ -400,6 +417,13 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      <FinalizarOSModal
+        ordem={ordemParaFinalizar}
+        onConfirm={concluirFinalizacao}
+        onInformarDepois={() => concluirFinalizacao()}
+        onClose={() => setOrdemParaFinalizar(null)}
+      />
 
       {ordemParaFaturar && (
         <ImprimirNotaModal

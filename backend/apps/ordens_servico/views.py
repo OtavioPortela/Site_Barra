@@ -25,7 +25,8 @@ from .serializers import (
     EstadoCabeloSerializer,
     TipoCabeloSerializer,
     CorCabeloSerializer,
-    CorLinhaSerializer
+    CorLinhaSerializer,
+    validar_medidas_finais,
 )
 from .permissions import IsOwnerOrReadOnly, CanFinalizeOS, IsStaffOrReadOnly
 
@@ -200,6 +201,22 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
         novo_status = request.data.get('status')
         if novo_status == 'finalizada' and ordem_servico.status != 'finalizada':
+            peso_final = request.data.get('peso_final_gramas')
+            tamanho_final = request.data.get('tamanho_final_cm')
+            try:
+                peso_final = int(peso_final) if peso_final not in (None, '') else None
+                tamanho_final = int(tamanho_final) if tamanho_final not in (None, '') else None
+            except (TypeError, ValueError):
+                return Response({'error': 'Peso e tamanho finais devem ser números inteiros.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            erros = validar_medidas_finais(ordem_servico, peso_final, tamanho_final, finalizando=True)
+            if erros:
+                return Response({'error': next(iter(erros.values())), 'campos': erros}, status=status.HTTP_400_BAD_REQUEST)
+
+            if peso_final is not None:
+                ordem_servico.peso_final_gramas = peso_final
+            if tamanho_final is not None:
+                ordem_servico.tamanho_final_cm = tamanho_final
             # Se está sendo finalizada, atualizar data_finalizacao
             ordem_servico.data_finalizacao = timezone.now()
 

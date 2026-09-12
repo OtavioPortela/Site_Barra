@@ -6,6 +6,7 @@ import { CreateClienteModal } from './CreateClienteModal';
 import type { Cliente } from '../../types';
 
 import { servicoService } from '../../services/api';
+import { OrigemCabeloCampos } from './OrigemCabeloCampos';
 
 interface NewOSModalProps {
   isOpen: boolean;
@@ -31,6 +32,9 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
     tamanho_cabelo_cm: '',
     cor_linha: '',
     servico: '',
+    origem_cabelo: 'cliente' as 'cliente' | 'proprio',
+    custo_cabelo: '',
+    limpeza_mesclagem: false,
   });
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
@@ -401,6 +405,10 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
       newErrors.valor = 'Valor total deve ser maior que zero';
     }
 
+    if (formData.origem_cabelo === 'proprio' && (formData.custo_cabelo === '' || parseFloat(formData.custo_cabelo) < 0)) {
+      newErrors.custo_cabelo = 'Informe o custo do cabelo';
+    }
+
     if (!formData.prazo_entrega) {
       newErrors.prazo_entrega = 'Prazo de entrega é obrigatório';
     }
@@ -437,6 +445,9 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
         formDataToSend.append('peso_gramas', formData.peso_gramas);
         formDataToSend.append('tamanho_cabelo_cm', formData.tamanho_cabelo_cm);
         formDataToSend.append('cor_linha', formData.cor_linha);
+        formDataToSend.append('origem_cabelo', formData.origem_cabelo);
+        if (formData.origem_cabelo === 'proprio') formDataToSend.append('custo_cabelo', formData.custo_cabelo);
+        formDataToSend.append('limpeza_mesclagem', formData.limpeza_mesclagem ? 'true' : 'false');
         if (servicoId) formDataToSend.append('servico_id', String(servicoId));
         if (formData.descricao) formDataToSend.append('descricao', formData.descricao);
         if (formData.descricao_cliente) formDataToSend.append('descricao_cliente', formData.descricao_cliente);
@@ -459,6 +470,9 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
           tamanho_cabelo_cm: parseInt(formData.tamanho_cabelo_cm),
           cor_linha: formData.cor_linha,
           servico_id: servicoId,
+          origem_cabelo: formData.origem_cabelo,
+          custo_cabelo: formData.origem_cabelo === 'proprio' ? parseFloat(formData.custo_cabelo) : null,
+          limpeza_mesclagem: formData.limpeza_mesclagem,
         };
 
         if (formData.descricao) createData.descricao = formData.descricao;
@@ -507,6 +521,9 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
         tamanho_cabelo_cm: '',
         cor_linha: '',
         servico: '',
+        origem_cabelo: 'cliente',
+        custo_cabelo: '',
+        limpeza_mesclagem: false,
       });
       setFotoFile(null);
       setFotoPreview(null);
@@ -787,6 +804,15 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
             {/* Seção: Detalhes do Cabelo */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Detalhes do Cabelo</h3>
+
+              <OrigemCabeloCampos
+                valores={formData}
+                onChange={(valores) => {
+                  setFormData({ ...formData, ...valores });
+                  setErrors({ ...errors, custo_cabelo: '' });
+                }}
+                erroCusto={errors.custo_cabelo}
+              />
 
               <div className="grid grid-cols-2 gap-4">
                 <div>

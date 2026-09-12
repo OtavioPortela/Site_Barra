@@ -36,6 +36,16 @@ class SaidaCaixa(models.Model):
         ('outro', 'Outro'),
     ]
 
+    TIPO_MATERIAL_CHOICES = [
+        ('linha', 'Linha'),
+        ('cola', 'Cola'),
+        ('tela', 'Tela'),
+        ('fita_silicone', 'Fita/silicone'),
+        ('embalagem', 'Embalagem'),
+        ('compra_cabelo', 'Compra de cabelo'),
+        ('outro', 'Outro'),
+    ]
+
     TIPO_CHOICES = [
         ('saida', 'Saída'),
         ('entrada', 'Entrada'),
@@ -45,6 +55,10 @@ class SaidaCaixa(models.Model):
     descricao = models.CharField(max_length=255)
     valor = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     categoria = models.CharField(max_length=20, choices=CATEGORIA_CHOICES, default='outro')
+    tipo_material = models.CharField(
+        max_length=20, choices=TIPO_MATERIAL_CHOICES, blank=True, default='',
+        verbose_name='Tipo de material',
+    )
     data = models.DateField()
     observacoes = models.TextField(blank=True, default='')
     criado_por = models.ForeignKey(

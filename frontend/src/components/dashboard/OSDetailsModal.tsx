@@ -5,6 +5,8 @@ import { formatCurrency, formatDate, formatDateTime } from '../../utils/helpers'
 import { imprimirNota } from '../../utils/printHelpers';
 import { useAuth } from '../../contexts/AuthContext';
 import * as apiModule from '../../services/api';
+import { OrigemCabeloCampos } from './OrigemCabeloCampos';
+import { formatarPercentual } from '../../utils/material';
 const servicoService = (apiModule as any).servicoService;
 
 interface OSDetailsModalProps {
@@ -111,6 +113,11 @@ export const OSDetailsModal = ({ isOpen, onClose, ordemId, onUpdated }: OSDetail
       descricao: ordem.descricao || '',
       observacoes: ordem.observacoes || '',
       servico_id: ordem.servico_id || '',
+      origem_cabelo: ordem.origem_cabelo || 'cliente',
+      custo_cabelo: ordem.custo_cabelo != null ? String(ordem.custo_cabelo) : '',
+      limpeza_mesclagem: !!ordem.limpeza_mesclagem,
+      peso_final_gramas: ordem.peso_final_gramas != null ? String(ordem.peso_final_gramas) : '',
+      tamanho_final_cm: ordem.tamanho_final_cm != null ? String(ordem.tamanho_final_cm) : '',
     });
     setIsEditing(true);
   };
@@ -157,14 +164,22 @@ export const OSDetailsModal = ({ isOpen, onClose, ordemId, onUpdated }: OSDetail
         observacoes: editData.observacoes,
       };
       if (editData.servico_id) payload.servico_id = editData.servico_id;
+      payload.origem_cabelo = editData.origem_cabelo;
+      payload.custo_cabelo = editData.origem_cabelo === 'proprio' && editData.custo_cabelo !== '' ? parseFloat(editData.custo_cabelo) : null;
+      payload.limpeza_mesclagem = editData.limpeza_mesclagem;
+      if (editData.peso_final_gramas !== '') payload.peso_final_gramas = parseInt(editData.peso_final_gramas);
+      if (editData.tamanho_final_cm !== '') payload.tamanho_final_cm = parseInt(editData.tamanho_final_cm);
 
       const updated = await ordemServicoService.update(ordemId!, payload);
       setOrdem(updated);
       setIsEditing(false);
       toast.success('OS atualizada com sucesso!');
       onUpdated?.();
-    } catch {
-      toast.error('Erro ao salvar alterações');
+    } catch (error: any) {
+      // Mostra a regra que o backend recusou (ex.: peso final obrigatório para finalizar)
+      const data = error?.response?.data;
+      const primeiro = data && typeof data === 'object' ? Object.values(data)[0] : null;
+      toast.error(Array.isArray(primeiro) ? String(primeiro[0]) : (data?.error || 'Erro ao salvar alterações'));
     } finally {
       setSaving(false);
     }
@@ -328,6 +343,60 @@ export const OSDetailsModal = ({ isOpen, onClose, ordemId, onUpdated }: OSDetail
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* Material e perda */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Material e Perda</h3>
+                {isEditing ? (
+                  <>
+                    <OrigemCabeloCampos
+                      valores={editData}
+                      onChange={(valores) => setEditData((prev: any) => ({ ...prev, ...valores }))}
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Peso final (g){(editData.status === 'finalizada' && ordem.exige_peso_final) ? ' *' : ''}
+                        </label>
+                        <input type="number" value={editData.peso_final_gramas} onChange={e => set('peso_final_gramas', e.target.value)} className={inputClass} min="1" placeholder="Ao finalizar" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Tamanho final (cm)</label>
+                        <input type="number" value={editData.tamanho_final_cm} onChange={e => set('tamanho_final_cm', e.target.value)} className={inputClass} min="1" placeholder="Opcional" />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Origem do cabelo</label>
+                      <p className="text-sm text-gray-900">
+                        {ordem.origem_cabelo === 'proprio'
+                          ? `Nosso${ordem.custo_cabelo != null ? ` · custo ${formatCurrency(Number(ordem.custo_cabelo))}` : ''}`
+                          : 'Da cliente'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Limpeza/mesclagem</label>
+                      <p className="text-sm text-gray-900">{ordem.limpeza_mesclagem ? 'Autorizada (perda esperada até 40%)' : 'Não (perda esperada até 20%)'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Peso / tamanho final</label>
+                      <p className="text-sm text-gray-900">
+                        {ordem.peso_final_gramas != null
+                          ? `${ordem.peso_final_gramas} g${ordem.tamanho_final_cm != null ? ` · ${ordem.tamanho_final_cm} cm` : ''}`
+                          : ordem.status === 'finalizada' ? 'Não informado' : 'Informado ao finalizar'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Perda</label>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {ordem.perda_percentual != null ? formatarPercentual(ordem.perda_percentual) : '-'}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Valores */}

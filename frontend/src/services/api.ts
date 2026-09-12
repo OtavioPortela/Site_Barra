@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { LoginCredentials, OrdemServico, BillingData, Debito, Cliente, SaidaCaixa } from '../types';
+import type { LoginCredentials, OrdemServico, BillingData, Debito, Cliente, SaidaCaixa, PainelMaterial } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -161,8 +161,12 @@ export const ordemServicoService = {
     return response.data;
   },
 
-  updateStatus: async (id: number, status: OrdemServico['status']): Promise<OrdemServico> => {
-    const response = await api.patch(`/ordens-servico/${id}/atualizar-status/`, { status });
+  updateStatus: async (
+    id: number,
+    status: OrdemServico['status'],
+    medidasFinais?: { peso_final_gramas?: number; tamanho_final_cm?: number }
+  ): Promise<OrdemServico> => {
+    const response = await api.patch(`/ordens-servico/${id}/atualizar-status/`, { status, ...medidasFinais });
     return response.data;
   },
 
@@ -197,6 +201,13 @@ export const billingService = {
   },
 };
 
+export const materialService = {
+  getPainel: async (periodo: { data_inicio: string; data_fim: string }): Promise<PainelMaterial> => {
+    const response = await api.get('/faturamento/material/', { params: periodo });
+    return response.data;
+  },
+};
+
 export const saidaCaixaService = {
   getAll: async (filters?: {
     data_inicio?: string;
@@ -213,6 +224,7 @@ export const saidaCaixaService = {
     descricao: string;
     valor: number;
     categoria: string;
+    tipo_material?: string;
     data: string;
     observacoes?: string;
   }): Promise<SaidaCaixa> => {

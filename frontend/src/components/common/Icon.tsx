@@ -24,6 +24,10 @@ const paths = {
   menu: 'M4 6h16 M4 12h16 M4 18h16',
   fechar: 'M6 18L18 6 M6 6l12 12',
   linha: 'M4 17c3-6 6 2 9-3s4-7 7-6',
+  alerta: 'M12 3l9.5 17h-19z M12 10v4 M12 17h.01',
+  balanca: 'M12 4v16 M7 20h10 M5 7h14 M5 7l-2.5 6a2.5 2.5 0 0 0 5 0z M19 7l-2.5 6a2.5 2.5 0 0 0 5 0z',
+  calendario: 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4',
+  info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 8h.01 M11 12h1v4h1',
 } as const;
 
 export type IconName = keyof typeof paths;

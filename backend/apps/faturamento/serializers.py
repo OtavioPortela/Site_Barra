@@ -7,8 +7,19 @@ class SaidaCaixaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SaidaCaixa
-        fields = ['id', 'tipo', 'descricao', 'valor', 'categoria', 'data', 'observacoes', 'criado_por_nome', 'data_criacao']
+        fields = ['id', 'tipo', 'descricao', 'valor', 'categoria', 'tipo_material', 'data', 'observacoes', 'criado_por_nome', 'data_criacao']
         read_only_fields = ['id', 'criado_por_nome', 'data_criacao']
+
+    def validate(self, attrs):
+        tipo = attrs.get('tipo', self.instance.tipo if self.instance else 'saida')
+        categoria = attrs.get('categoria', self.instance.categoria if self.instance else 'outro')
+        tipo_material = attrs.get('tipo_material', self.instance.tipo_material if self.instance else '')
+        if categoria != 'material':
+            # Tipo de material só faz sentido em saídas de material
+            attrs['tipo_material'] = ''
+        elif tipo == 'saida' and not tipo_material:
+            raise serializers.ValidationError({'tipo_material': 'Informe o tipo de material.'})
+        return attrs
 
     def get_criado_por_nome(self, obj):
         if obj.criado_por:

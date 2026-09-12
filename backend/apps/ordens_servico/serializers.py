@@ -1,3 +1,4 @@
+from copy import copy
 from rest_framework import serializers
 from django.utils import timezone
 from datetime import date
@@ -33,6 +34,32 @@ class ClienteSerializer(serializers.ModelSerializer):
 
 
 
+def validar_medidas_finais(ordem, peso_final, tamanho_final, finalizando):
+    """
+    Regras do controle de perdas ao finalizar (ou ao corrigir o peso depois).
+    Retorna um dict {campo: mensagem} com os erros encontrados.
+    """
+    erros = {}
+    peso_entrada = ordem.peso_gramas if ordem else 0
+    tamanho_entrada = ordem.tamanho_cabelo_cm if ordem else 0
+
+    if peso_final is not None:
+        if peso_final < 1:
+            erros['peso_final_gramas'] = 'O peso final deve ser maior que zero.'
+        elif peso_entrada and peso_final > peso_entrada:
+            erros['peso_final_gramas'] = f'O peso final não pode ser maior que o de entrada ({peso_entrada} g).'
+    if tamanho_final is not None:
+        if tamanho_final < 1:
+            erros['tamanho_final_cm'] = 'O tamanho final deve ser maior que zero.'
+        elif tamanho_entrada and tamanho_final > tamanho_entrada:
+            erros['tamanho_final_cm'] = f'O tamanho final não pode ser maior que o de entrada ({tamanho_entrada} cm).'
+
+    ja_tem_peso = ordem is not None and ordem.peso_final_gramas is not None
+    if finalizando and ordem is not None and ordem.exige_peso_final and peso_final is None and not ja_tem_peso:
+        erros['peso_final_gramas'] = 'Informe o peso final para finalizar esta OS.'
+    return erros
+
+
 class OrdemServicoSerializer(serializers.ModelSerializer):
     """Serializer para o modelo OrdemServico."""
     cliente = serializers.SerializerMethodField()
@@ -60,6 +87,7 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
     data_faturamento = DateTimeFieldISO(read_only=True, allow_null=True)
     faturada = serializers.BooleanField(read_only=True)
     troco = serializers.SerializerMethodField()
+    perda_percentual = serializers.SerializerMethodField()
     numero = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     estado_cabelo = serializers.CharField(required=False, allow_blank=True)
     tipo_cabelo = serializers.CharField(required=False, allow_blank=True)
@@ -73,10 +101,17 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
             'valor', 'data_criacao', 'prazo_entrega', 'data_finalizacao', 'faturada', 'data_faturamento',
             'observacoes', 'usuario_criacao', 'usuario_criacao_nome', 'entregue', 'pago_na_entrega', 'foto_entrega',
             'forma_pagamento', 'forma_pagamento_2', 'valor_pagamento_1', 'valor_pagamento_2',
-            'valor_recebido', 'troco'
+            'valor_recebido', 'troco',
+            'origem_cabelo', 'custo_cabelo', 'limpeza_mesclagem',
+            'peso_final_gramas', 'tamanho_final_cm', 'exige_peso_final', 'perda_percentual',
         ]
-        read_only_fields = ['id', 'data_criacao', 'data_finalizacao', 'faturada', 'data_faturamento', 'usuario_criacao', 'troco']
+        read_only_fields = ['id', 'data_criacao', 'data_finalizacao', 'faturada', 'data_faturamento', 'usuario_criacao', 'troco', 'exige_peso_final', 'perda_percentual']
 
+
+    def get_perda_percentual(self, obj):
+        if obj.peso_final_gramas is None or not obj.peso_gramas:
+            return None
+        return round((obj.peso_gramas - obj.peso_final_gramas) / obj.peso_gramas * 100, 1)
 
     def get_troco(self, obj):
         if obj.valor_recebido is None:
@@ -164,6 +199,31 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
                 "valor": "Não é possível finalizar uma OS sem valor definido."
             })
 
+        # Origem do cabelo: quando o cabelo é nosso, o custo é obrigatório
+        origem = attrs.get('origem_cabelo', self.instance.origem_cabelo if self.instance else 'cliente')
+        if origem == 'proprio':
+            custo = attrs['custo_cabelo'] if 'custo_cabelo' in attrs else (self.instance.custo_cabelo if self.instance else None)
+            if custo is None:
+                raise serializers.ValidationError({'custo_cabelo': 'Informe o custo do cabelo quando ele é nosso.'})
+        elif 'origem_cabelo' in attrs:
+            attrs['custo_cabelo'] = None
+
+        # Peso/tamanho final: coerência com a entrada e obrigatoriedade ao finalizar
+        if self.instance is not None:
+            finalizando = status == 'finalizada' and self.instance.status != 'finalizada'
+            referencia = copy(self.instance)
+            for campo in ('peso_gramas', 'tamanho_cabelo_cm'):
+                if campo in attrs:
+                    setattr(referencia, campo, attrs[campo])
+            erros = validar_medidas_finais(
+                referencia,
+                attrs.get('peso_final_gramas'),
+                attrs.get('tamanho_final_cm'),
+                finalizando,
+            )
+            if erros:
+                raise serializers.ValidationError(erros)
+
         return attrs
 
     def validate_valor(self, value):
@@ -220,7 +280,8 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'numero', 'cliente', 'cliente_telefone', 'cliente_eh_parceiro', 'descricao', 'status',
             'servico', 'valor', 'data_criacao', 'prazo_entrega', 'data_finalizacao', 'faturada', 'entregue', 'pago_na_entrega', 'foto_entrega',
-            'forma_pagamento', 'forma_pagamento_2', 'valor_pagamento_1', 'valor_pagamento_2'
+            'forma_pagamento', 'forma_pagamento_2', 'valor_pagamento_1', 'valor_pagamento_2',
+            'peso_gramas', 'tamanho_cabelo_cm', 'limpeza_mesclagem', 'peso_final_gramas', 'exige_peso_final',
         ]
 
 

@@ -16,6 +16,7 @@ import { Funcionarios } from './pages/Funcionarios';
 import { Configuracoes } from './pages/Configuracoes';
 import { Debitos } from './pages/Debitos';
 import { Caixa } from './pages/Caixa';
+import { Material } from './pages/Material';
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -70,6 +71,18 @@ function AppRoutes() {
               </PinGate>
             </AppLayout>
           </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/material"
+        element={
+          <ProtectedRoutePatrao>
+            <AppLayout>
+              <PinGate>
+                <Material />
+              </PinGate>
+            </AppLayout>
+          </ProtectedRoutePatrao>
         }
       />
       <Route

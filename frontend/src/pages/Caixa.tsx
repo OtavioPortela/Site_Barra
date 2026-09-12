@@ -3,6 +3,8 @@ import { saidaCaixaService, ordemServicoService } from '../services/api';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import type { SaidaCaixa, OrdemServico } from '../types';
+import { TipoMaterialSelector } from '../components/common/TipoMaterialSelector';
+import { TIPOS_MATERIAL } from '../utils/material';
 
 const CATEGORIAS = [
   { value: 'outro', label: 'Outro' },
@@ -26,6 +28,7 @@ const emptyForm = {
   descricao: '',
   valor: '',
   categoria: 'outro',
+  tipo_material: '',
   data: new Date().toISOString().split('T')[0],
   observacoes: '',
 };
@@ -92,6 +95,10 @@ export const Caixa = () => {
       toast.error('Valor deve ser maior que zero.');
       return;
     }
+    if (form.tipo === 'saida' && form.categoria === 'material' && !form.tipo_material) {
+      toast.error('Escolha o tipo de material.');
+      return;
+    }
     try {
       setSaving(true);
       await saidaCaixaService.create({
@@ -99,6 +106,7 @@ export const Caixa = () => {
         descricao: form.descricao.trim(),
         valor,
         categoria: form.categoria,
+        tipo_material: form.categoria === 'material' && form.tipo === 'saida' ? form.tipo_material : '',
         data: form.data,
         observacoes: form.observacoes.trim(),
       });
@@ -316,6 +324,11 @@ export const Caixa = () => {
                 placeholder="Opcional"
               />
             </div>
+            {form.tipo === 'saida' && form.categoria === 'material' && (
+              <div className="md:col-span-2">
+                <TipoMaterialSelector value={form.tipo_material} onChange={(v) => handleChange('tipo_material', v)} />
+              </div>
+            )}
           </div>
           <div className="mt-4 flex justify-end">
             <button
@@ -450,8 +463,9 @@ export const Caixa = () => {
                           )}
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs capitalize">
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">
                             {CATEGORIAS.find((c) => c.value === item.categoria)?.label ?? item.categoria}
+                            {item.tipo_material ? ` · ${TIPOS_MATERIAL.find((t) => t.value === item.tipo_material)?.label ?? ''}` : ''}
                           </span>
                         </td>
                         <td className={`px-4 py-3 text-sm font-semibold whitespace-nowrap ${

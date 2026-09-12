@@ -33,6 +33,14 @@ export interface OrdemServico {
   valor_pagamento_2?: number | null;
   valor_recebido?: number | null;
   troco?: number | null;
+  // Controle de material/perdas
+  origem_cabelo?: 'cliente' | 'proprio';
+  custo_cabelo?: number | string | null;
+  limpeza_mesclagem?: boolean;
+  peso_final_gramas?: number | null;
+  tamanho_final_cm?: number | null;
+  exige_peso_final?: boolean;
+  perda_percentual?: number | null;
 }
 
 export interface Cliente {
@@ -72,6 +80,7 @@ export interface SaidaCaixa {
   descricao: string;
   valor: number;
   categoria: string;
+  tipo_material?: string;
   data: string;
   observacoes: string;
   criado_por_nome: string | null;
@@ -103,3 +112,63 @@ export interface BillingData {
   ordens_finalizadas: OrdemServico[];
 }
 
+
+export interface PerdaAgrupada {
+  nome: string;
+  perda: number | null;
+  os: number;
+  gramas_entrada: number;
+  gramas_perdidas: number;
+}
+
+export interface VolumeLinha {
+  nome: string;
+  os: number;
+  gramas: number;
+  valor: number;
+  valor_por_100g: number | null;
+}
+
+export interface PainelMaterial {
+  periodo: { inicio: string; fim: string };
+  resumo: {
+    gramas_recebidas: number;
+    os_recebidas: number;
+    media_gramas: number | null;
+    perda_media: number | null;
+    perda_media_limpeza: number | null;
+    perda_esperada: number;
+    perda_esperada_limpeza: number;
+    os_pesadas: number;
+    os_sem_peso_final: number;
+    gasto_material: number;
+    material_por_100g: number | null;
+    faturamento: number;
+    material_pct_faturamento: number | null;
+  };
+  perdas: {
+    semanal: (PerdaAgrupada & { semana: string })[];
+    por_servico: PerdaAgrupada[];
+    por_estado: PerdaAgrupada[];
+    por_origem: PerdaAgrupada[];
+    acima_do_esperado: {
+      id: number; numero: string; cliente: string; servico: string; limpeza_mesclagem: boolean;
+      peso_entrada: number; peso_final: number; perda: number; esperado: number;
+    }[];
+    total_acima_do_esperado: number;
+    sem_peso_final: {
+      id: number; numero: string; cliente: string; servico: string;
+      peso_entrada: number; tamanho_entrada: number; limpeza_mesclagem: boolean; data_finalizacao: string;
+    }[];
+  };
+  volume: {
+    semanal: { semana: string; gramas: number; os: number }[];
+    por_servico: VolumeLinha[];
+    top_clientes: VolumeLinha[];
+  };
+  custo: {
+    por_tipo: { tipo: string; nome: string; valor: number; percentual: number | null }[];
+    saidas_outro: { quantidade: number; valor: number };
+    cabelo_proprio: { os: number; gramas: number; custo: number; perda_media: number | null; os_pesadas: number; prejuizo_estimado: number };
+  };
+}

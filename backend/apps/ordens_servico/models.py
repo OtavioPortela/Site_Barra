@@ -111,6 +111,49 @@ class OrdemServico(models.Model):
         verbose_name='Valor por Metro (R$)',
         help_text='Valor em reais por metro'
     )
+    # Controle de material/perdas (painel Material)
+    ORIGEM_CABELO_CHOICES = [
+        ('cliente', 'Da cliente'),
+        ('proprio', 'Nosso'),
+    ]
+    origem_cabelo = models.CharField(
+        max_length=10,
+        choices=ORIGEM_CABELO_CHOICES,
+        default='cliente',
+        verbose_name='Origem do cabelo',
+    )
+    custo_cabelo = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True,
+        verbose_name='Custo do cabelo (R$)',
+        help_text='Quanto a Barra pagou pelo cabelo quando a origem é própria',
+    )
+    limpeza_mesclagem = models.BooleanField(
+        default=False,
+        verbose_name='Limpeza/mesclagem autorizada',
+        help_text='Com limpeza/mesclagem a perda esperada é de até 40% (sem, 20%)',
+    )
+    peso_final_gramas = models.IntegerField(
+        validators=[MinValueValidator(1)],
+        null=True,
+        blank=True,
+        verbose_name='Peso final (g)',
+    )
+    tamanho_final_cm = models.IntegerField(
+        validators=[MinValueValidator(1)],
+        null=True,
+        blank=True,
+        verbose_name='Tamanho final (cm)',
+    )
+    exige_peso_final = models.BooleanField(
+        default=True,
+        verbose_name='Exige peso final ao finalizar',
+        help_text='Falso nas OS criadas antes do controle de perdas (podem informar depois)',
+    )
+
     data_criacao = models.DateTimeField(auto_now_add=True)
     prazo_entrega = models.DateTimeField()
     data_finalizacao = models.DateTimeField(null=True, blank=True)
@@ -267,4 +310,3 @@ class CorLinha(models.Model):
 
     def __str__(self):
         return self.nome
-

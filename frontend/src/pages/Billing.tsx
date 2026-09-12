@@ -6,6 +6,8 @@ import { FaturadosDia } from '../components/billing/FaturadosDia';
 import { Loading } from '../components/common/Loading';
 import { billingService, clienteService, saidaCaixaService } from '../services/api';
 import type { BillingData, SaidaCaixa } from '../types';
+import { TipoMaterialSelector } from '../components/common/TipoMaterialSelector';
+import { TIPOS_MATERIAL } from '../utils/material';
 
 type Aba = 'dashboard' | 'faturados-dia' | 'lancamentos';
 
@@ -24,6 +26,7 @@ const emptyForm = {
   descricao: '',
   valor: '',
   categoria: 'outro',
+  tipo_material: '',
   data: new Date().toISOString().split('T')[0],
   observacoes: '',
 };
@@ -107,6 +110,10 @@ export const Billing = () => {
       toast.error('Valor inválido.');
       return;
     }
+    if (formSaida.tipo === 'saida' && formSaida.categoria === 'material' && !formSaida.tipo_material) {
+      toast.error('Escolha o tipo de material.');
+      return;
+    }
     try {
       setSavingSaida(true);
       await saidaCaixaService.create({
@@ -114,6 +121,7 @@ export const Billing = () => {
         descricao: formSaida.descricao,
         valor,
         categoria: formSaida.categoria,
+        tipo_material: formSaida.categoria === 'material' && formSaida.tipo === 'saida' ? formSaida.tipo_material : '',
         data: formSaida.data,
         observacoes: formSaida.observacoes,
       });
@@ -334,6 +342,11 @@ export const Billing = () => {
                   placeholder="Opcional"
                 />
               </div>
+              {formSaida.tipo === 'saida' && formSaida.categoria === 'material' && (
+                <div className="md:col-span-2">
+                  <TipoMaterialSelector value={formSaida.tipo_material} onChange={(v) => handleSaidaChange('tipo_material', v)} />
+                </div>
+              )}
             </div>
             <div className="mt-4 flex justify-end">
               <button
@@ -388,8 +401,9 @@ export const Billing = () => {
                         )}
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium capitalize">
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
                           {CATEGORIAS.find((c) => c.value === saida.categoria)?.label ?? saida.categoria}
+                          {saida.tipo_material ? ` · ${TIPOS_MATERIAL.find((t) => t.value === saida.tipo_material)?.label ?? ''}` : ''}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">
