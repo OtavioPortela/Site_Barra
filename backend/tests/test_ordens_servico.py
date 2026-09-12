@@ -1,4 +1,6 @@
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 from rest_framework import status
 from django.utils import timezone
@@ -86,6 +88,24 @@ class OrdemServicoListCreateTest(TestCase):
         numeros = [os['numero'] for os in self._resultados(response)]
         self.assertIn('OS-001', numeros)
         self.assertIn('OS-002', numeros)
+
+    def test_listagem_nao_faz_query_por_os(self):
+        # Regressão do N+1: com uma query por OS o histórico levava mais de 20s
+        def contar_queries():
+            with CaptureQueriesContext(connection) as ctx:
+                response = self.client.get('/api/ordens-servico/?historico=1')
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            return len(ctx.captured_queries)
+
+        criar_os(self.usuario, self.cliente, self.servico, numero='OS-001')
+        queries_com_uma_os = contar_queries()
+
+        for i in range(2, 12):
+            criar_os(
+                self.usuario, criar_cliente(nome=f'Cliente {i}'),
+                criar_servico(nome=f'Serviço {i}'), numero=f'OS-{i:03d}',
+            )
+        self.assertEqual(contar_queries(), queries_com_uma_os)
 
     def test_filtrar_por_status(self):
         criar_os(self.usuario, self.cliente, self.servico, numero='OS-001', status='pendente')

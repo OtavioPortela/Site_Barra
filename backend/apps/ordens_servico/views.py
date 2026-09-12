@@ -70,7 +70,9 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Filtra queryset baseado em parâmetros de data."""
-        queryset = super().get_queryset()
+        # Os serializers leem cliente, serviço e usuário de cada OS; sem o JOIN
+        # a listagem do histórico fazia uma query por OS e passava de 20s.
+        queryset = super().get_queryset().select_related('cliente', 'servico', 'usuario_criacao')
 
         # Faturamento é informação restrita ao patrão: quem não é staff nunca
         # recebe OS faturadas, independente dos filtros que mandar na query.
