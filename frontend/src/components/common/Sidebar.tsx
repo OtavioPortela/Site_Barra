@@ -1,31 +1,43 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { Icon, type IconName } from './Icon';
+import logo from '../../assets/barra-logo.png';
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+const iniciais = (nome: string) =>
+  nome
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((parte) => parte[0]?.toUpperCase())
+    .join('');
+
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const location = useLocation();
-  const { isPatrao } = useAuth();
+  const { user, logout, isPatrao } = useAuth();
 
   if (location.pathname === '/login') {
     return null;
   }
 
   const isPatraoValue = isPatrao();
+  const nomeUsuario = user?.nome || user?.email || '';
 
-  const navItems = [
-    { path: '/dashboard',   label: 'Dashboard',    icon: '📊', requiresStaff: false },
-    { path: '/faturamento', label: 'Faturamento',  icon: '💰', requiresStaff: true  },
-    { path: '/historico-os',label: 'Histórico OS', icon: '📋', requiresStaff: false },
-    { path: '/clientes',    label: 'Clientes',     icon: '👥', requiresStaff: false },
-    { path: '/caixa',       label: 'Caixa',        icon: '💵', requiresStaff: false },
-    { path: '/debitos',     label: 'Débitos',      icon: '📝', requiresStaff: false },
-    { path: '/funcionarios',label: 'Funcionários', icon: '👔', requiresStaff: true  },
-    { path: '/configuracoes',label:'Configurações',icon: '⚙️', requiresStaff: true  },
-  ].filter(item => !item.requiresStaff || isPatraoValue);
+  const allNavItems: { path: string; label: string; icon: IconName; requiresStaff: boolean }[] = [
+    { path: '/dashboard',    label: 'Dashboard',     icon: 'dashboard',     requiresStaff: false },
+    { path: '/faturamento',  label: 'Faturamento',   icon: 'faturamento',   requiresStaff: true  },
+    { path: '/historico-os', label: 'Histórico OS',  icon: 'historico',     requiresStaff: false },
+    { path: '/clientes',     label: 'Clientes',      icon: 'clientes',      requiresStaff: false },
+    { path: '/caixa',        label: 'Caixa',         icon: 'caixa',         requiresStaff: false },
+    { path: '/debitos',      label: 'Débitos',       icon: 'recibo',        requiresStaff: false },
+    { path: '/funcionarios', label: 'Funcionários',  icon: 'funcionarios',  requiresStaff: true  },
+    { path: '/configuracoes',label: 'Configurações', icon: 'configuracoes', requiresStaff: true  },
+  ];
+  const navItems = allNavItems.filter(item => !item.requiresStaff || isPatraoValue);
 
   const handleLinkClick = () => {
     // Fechar o menu ao clicar em um link (em mobile)
@@ -34,82 +46,72 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     }
   };
 
+  const navList = (
+    <ul className="flex flex-col gap-0.5">
+      {navItems.map((item) => {
+        const ativo = location.pathname === item.path;
+        return (
+          <li key={item.path}>
+            <Link
+              to={item.path}
+              onClick={handleLinkClick}
+              className={`flex h-[42px] items-center gap-3 rounded-[10px] px-3 text-sm transition-colors ${
+                ativo
+                  ? 'bg-tinta font-semibold text-papel'
+                  : 'font-medium text-tinta-suave hover:bg-tinta/5 hover:text-tinta'
+              }`}
+            >
+              <span className={ativo ? 'text-areia' : 'text-pedra'}>
+                <Icon name={item.icon} />
+              </span>
+              <span>{item.label}</span>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
+  const rodapeUsuario = (
+    <div className="flex items-center gap-2.5 border-t border-[#d4d2ca] px-2.5 pt-3">
+      <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-areia text-xs font-bold tracking-wide text-tinta">
+        {iniciais(nomeUsuario)}
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-[13.5px] font-semibold text-tinta">{nomeUsuario}</span>
+        <span className="text-xs text-pedra">{isPatraoValue ? 'Patrão' : 'Funcionário'}</span>
+      </div>
+      <button
+        onClick={logout}
+        title="Sair"
+        aria-label="Sair"
+        className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px] border border-[#d4d2ca] text-pedra transition-colors hover:border-terracota/40 hover:bg-terracota-fundo hover:text-terracota"
+      >
+        <Icon name="sair" />
+      </button>
+    </div>
+  );
+
   return (
     <>
       {/* Sidebar para desktop - sempre visível */}
-      <aside className="hidden lg:block bg-white shadow-lg w-64 border-r border-gray-200" style={{ minHeight: 'calc(100vh - 4rem)' }}>
-      <nav className="p-4">
-        <ul className="space-y-2">
-          {navItems.map((item) => (
-            <li key={item.path}>
-              <Link
-                to={item.path}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                  location.pathname === item.path
-                    ? 'bg-primary-100 text-primary-700 font-semibold'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <span className="text-xl">{item.icon}</span>
-                <span>{item.label}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </aside>
+      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col gap-7 border-r border-[#d4d2ca] bg-linho px-[18px] pb-[22px] pt-7 lg:flex">
+        <Link to="/dashboard" className="flex justify-center px-1.5 pt-1">
+          <img src={logo} alt="Barra Confecções" className="block h-auto w-[176px]" />
+        </Link>
+        <nav className="min-h-0 flex-1 overflow-y-auto">{navList}</nav>
+        {rodapeUsuario}
+      </aside>
 
       {/* Sidebar para mobile - com animação */}
       <aside
-        className={`fixed lg:hidden top-16 left-0 z-50 bg-white shadow-xl w-64 h-[calc(100vh-4rem)] border-r border-gray-200 transform transition-transform duration-300 ease-in-out overflow-y-auto ${
+        className={`fixed left-0 top-16 z-50 flex h-[calc(100vh-4rem)] w-[272px] transform flex-col gap-6 overflow-y-auto border-r border-[#d4d2ca] bg-linho px-4 pb-5 pt-5 shadow-xl transition-transform duration-300 ease-in-out lg:hidden ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Botão fechar no mobile */}
-        <div className="flex justify-between items-center p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">Menu</h2>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
-            aria-label="Fechar menu"
-          >
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-        <nav className="p-4">
-          <ul className="space-y-2">
-            {navItems.map((item) => (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  onClick={handleLinkClick}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                    location.pathname === item.path
-                      ? 'bg-primary-100 text-primary-700 font-semibold'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <span className="text-xl">{item.icon}</span>
-                  <span>{item.label}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <nav className="flex-1">{navList}</nav>
+        {rodapeUsuario}
       </aside>
     </>
   );
 };
-

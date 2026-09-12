@@ -2,6 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { OrdemServico } from '../../types';
 import { SortableOSCard } from './SortableOSCard';
+import { Icon } from '../common/Icon';
 
 interface OSColumnProps {
   id: string;
@@ -27,14 +28,21 @@ export const OSColumn = ({ id, title, ordens, onViewDetails, onChangeStatus, onF
   });
 
   return (
-    <div className={`flex-1 min-w-[300px] bg-gray-50 rounded-lg p-4 ${!canDrop ? 'opacity-60' : ''}`}>
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
-        <span className="text-sm text-gray-500">({ordens.length})</span>
+    <div className={`flex min-w-[300px] flex-1 flex-col gap-3 ${!canDrop ? 'opacity-60' : ''}`}>
+      <div className="flex flex-col gap-2.5 px-0.5 pt-0.5">
+        <div className="flex items-center gap-2.5">
+          <h2 className="font-serif text-2xl font-semibold leading-tight text-tinta">{title}</h2>
+          <span className="inline-flex h-[22px] min-w-6 items-center justify-center rounded-full bg-[#e3e1da] px-2 text-xs font-bold tabular-nums text-tinta-suave">
+            {ordens.length}
+          </span>
+        </div>
+        <div className="relative h-px bg-[#dad7cf]">
+          <div className="absolute -top-px left-0 h-0.5 w-10 bg-areia" />
+        </div>
       </div>
 
       <SortableContext items={ordens.map(o => o.id)} strategy={verticalListSortingStrategy}>
-        <div ref={setNodeRef} className="space-y-2 min-h-[200px]">
+        <div ref={setNodeRef} className="flex min-h-[200px] flex-col gap-3">
           {ordens.map((ordem) => (
             <SortableOSCard
               key={ordem.id}
@@ -50,7 +58,8 @@ export const OSColumn = ({ id, title, ordens, onViewDetails, onChangeStatus, onF
             />
           ))}
           {ordens.length === 0 && (
-            <div className="text-center text-gray-400 py-8">
+            <div className="flex flex-col items-center gap-2 rounded-[13px] border border-dashed border-[#d6d3ca] px-4 py-9 text-[13.5px] text-pedra-claro">
+              <span className="text-areia"><Icon name="linha" className="h-[22px] w-[22px]" /></span>
               Nenhuma OS nesta coluna
             </div>
           )}

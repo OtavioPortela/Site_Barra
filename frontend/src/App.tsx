@@ -21,13 +21,13 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-linho-claro">
       <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
       <div className="flex relative">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         {sidebarOpen && (
           <div
-            className="fixed top-16 left-0 right-0 bottom-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            className="fixed top-16 left-0 right-0 bottom-0 bg-tinta/40 z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -41,7 +41,7 @@ function AppRoutes() {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
+    return <div className="flex items-center justify-center min-h-screen bg-linho-claro text-pedra">Carregando...</div>;
   }
 
   return (

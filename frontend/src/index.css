@@ -1,10 +1,51 @@
 @import "tailwindcss";
 
+/*
+ * Identidade Barra Confecções — cores tiradas da logo.
+ * No Tailwind 4 o tema vive aqui (o tailwind.config.js era ignorado,
+ * por isso as classes primary-* nunca chegavam ao CSS de produção).
+ */
+@theme {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+
+  --color-linho: #e3e3dd;
+  --color-linho-claro: #eeede8;
+  --color-papel: #faf9f6;
+  --color-tinta: #1f1e1b;
+  --color-tinta-suave: #4a4741;
+  --color-pedra: #7a766d;
+  --color-pedra-claro: #a29e94;
+  --color-borda: #dedbd3;
+  --color-borda-suave: #ece9e2;
+  --color-areia: #c2a983;
+  --color-areia-escuro: #8a7250;
+
+  --color-salvia: #46603f;
+  --color-salvia-fundo: #e4eadf;
+  --color-ocre: #8a5e17;
+  --color-ocre-fundo: #f1e6cf;
+  --color-terracota: #9a3f33;
+  --color-terracota-fundo: #f2deda;
+
+  /* Escala "primary" usada nas telas antigas, agora em tons de areia */
+  --color-primary-50: #f7f4ee;
+  --color-primary-100: #efe8dc;
+  --color-primary-200: #e2d5bf;
+  --color-primary-300: #d2bd9c;
+  --color-primary-400: #c2a983;
+  --color-primary-500: #ad9168;
+  --color-primary-600: #8a7250;
+  --color-primary-700: #6e5a3f;
+  --color-primary-800: #54452f;
+  --color-primary-900: #3a3021;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  background-color: var(--color-linho-claro);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

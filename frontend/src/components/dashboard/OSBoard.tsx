@@ -14,6 +14,7 @@ import type { OrdemServico } from '../../types';
 import { ImprimirNotaModal } from './ImprimirNotaModal';
 import { OSCard } from './OSCard';
 import { OSColumn } from './OSColumn';
+import { Icon } from '../common/Icon';
 
 interface OSBoardProps {
   onViewDetails: (ordem: OrdemServico) => void;
@@ -277,42 +278,52 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-borda border-t-tinta"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <h1 className="text-2xl font-bold text-gray-800">Ordens de Serviço</h1>
+    <div className="flex flex-col gap-[22px]">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-2.5">
+          <h1 className="font-serif text-[34px] font-medium leading-none text-tinta sm:text-[42px]">Ordens de Serviço</h1>
+          <div className="h-0.5 w-14 rounded-full bg-areia" />
+        </div>
         <button
           onClick={onNewOS}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          className="flex h-11 items-center justify-center gap-2 rounded-[11px] bg-tinta pl-4 pr-5 text-sm font-semibold text-papel transition-colors hover:bg-black"
         >
-          + Nova OS
+          <Icon name="mais" />
+          Nova OS
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <input
-          type="text"
-          placeholder="Buscar por número ou descrição..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-        />
-        <input
-          type="text"
-          placeholder="Filtrar por cliente..."
-          value={filterCliente}
-          onChange={(e) => setFilterCliente(e.target.value)}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-        />
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <label className="flex h-11 shrink-0 items-center sm:flex-1 gap-2.5 rounded-[11px] border border-borda bg-papel px-3.5 text-pedra-claro transition-shadow focus-within:border-tinta focus-within:ring-4 focus-within:ring-areia/30">
+          <Icon name="busca" />
+          <input
+            type="text"
+            placeholder="Buscar por número ou descrição..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="h-full w-full bg-transparent text-sm text-tinta placeholder:text-pedra-claro focus:outline-none"
+          />
+        </label>
+        <label className="flex h-11 items-center gap-2.5 rounded-[11px] border border-borda bg-papel px-3.5 text-pedra-claro transition-shadow focus-within:border-tinta focus-within:ring-4 focus-within:ring-areia/30 sm:w-80">
+          <Icon name="usuario" />
+          <input
+            type="text"
+            placeholder="Filtrar por cliente..."
+            value={filterCliente}
+            onChange={(e) => setFilterCliente(e.target.value)}
+            className="h-full w-full bg-transparent text-sm text-tinta placeholder:text-pedra-claro focus:outline-none"
+          />
+        </label>
       </div>
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           <OSColumn
             id="pendente"
             title="Pendente"
