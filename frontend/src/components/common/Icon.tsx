@@ -14,6 +14,7 @@ const paths = {
   voltar: 'M19 12H5 M11 6l-6 6 6 6',
   avancar: 'M5 12h14 M13 6l6 6-6 6',
   chevron: 'M9 6l6 6-6 6',
+  chevronEsquerda: 'M15 6l-6 6 6 6',
   relogio: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2',
   mensagem: 'M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3.5 20l1.2-4.2A8.5 8.5 0 1 1 20.5 11.5z',
   check: 'M5 12.5l4.5 4.5L19 7.5',

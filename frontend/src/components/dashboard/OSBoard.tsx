@@ -6,7 +6,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ordemServicoService } from '../../services/api';
 import { whatsappService } from '../../services/whatsappService';
@@ -15,11 +15,15 @@ import { ImprimirNotaModal } from './ImprimirNotaModal';
 import { OSCard } from './OSCard';
 import { OSColumn } from './OSColumn';
 import { Icon } from '../common/Icon';
+import { ordenarPorPrazo } from '../../utils/paginacao';
 
 interface OSBoardProps {
   onViewDetails: (ordem: OrdemServico) => void;
   onNewOS: () => void;
 }
+
+type ColunaId = 'pendente' | 'em_desenvolvimento' | 'finalizada';
+const PAGINAS_INICIAIS: Record<ColunaId, number> = { pendente: 1, em_desenvolvimento: 1, finalizada: 1 };
 
 export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
   const [ordens, setOrdens] = useState<OrdemServico[]>([]);
@@ -33,6 +37,14 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
   const [showImprimirNotaModal, setShowImprimirNotaModal] = useState(false);
   const [ordensEnviadasWhatsApp, setOrdensEnviadasWhatsApp] = useState<Set<number>>(new Set());
   const [ordensNotaEmitida, setOrdensNotaEmitida] = useState<Set<number>>(new Set());
+  // Página de cada coluna fica aqui: as colunas são desmontadas a cada recarga (spinner)
+  const [paginas, setPaginas] = useState<Record<ColunaId, number>>(PAGINAS_INICIAIS);
+  const mudarPaginaColuna = useCallback((coluna: ColunaId, pagina: number) => {
+    setPaginas((atual) => (atual[coluna] === pagina ? atual : { ...atual, [coluna]: pagina }));
+  }, []);
+  const mudarPaginaPendente = useCallback((p: number) => mudarPaginaColuna('pendente', p), [mudarPaginaColuna]);
+  const mudarPaginaEmDesenvolvimento = useCallback((p: number) => mudarPaginaColuna('em_desenvolvimento', p), [mudarPaginaColuna]);
+  const mudarPaginaFinalizada = useCallback((p: number) => mudarPaginaColuna('finalizada', p), [mudarPaginaColuna]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -73,6 +85,7 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
   // Recarregar quando os filtros mudarem (com debounce)
   useEffect(() => {
     const timer = setTimeout(() => {
+      setPaginas(PAGINAS_INICIAIS);
       loadOrdens();
     }, 500); // Debounce de 500ms
 
@@ -259,8 +272,9 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
   // Filtrar ordens: excluir faturadas do dashboard e separar por status
   // Garantir que faturada seja tratado como boolean (pode vir undefined do backend)
   const ordensFiltradas = ordens.filter((o) => o.faturada !== true);
-  const pendentes = ordensFiltradas.filter((o) => o.status === 'pendente');
-  const emDesenvolvimento = ordensFiltradas.filter((o) => o.status === 'em_desenvolvimento');
+  // Com paginação, as mais urgentes precisam estar na primeira página
+  const pendentes = ordenarPorPrazo(ordensFiltradas.filter((o) => o.status === 'pendente'));
+  const emDesenvolvimento = ordenarPorPrazo(ordensFiltradas.filter((o) => o.status === 'em_desenvolvimento'));
   const finalizadas = ordensFiltradas.filter((o) => o.status === 'finalizada');
 
   // Debug
@@ -328,6 +342,8 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
             id="pendente"
             title="Pendente"
             ordens={pendentes}
+            pagina={paginas.pendente}
+            onPaginaChange={mudarPaginaPendente}
             onViewDetails={onViewDetails}
             onChangeStatus={updateStatus}
             onFaturar={handleFaturar}
@@ -341,6 +357,8 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
             id="em_desenvolvimento"
             title="Em Desenvolvimento"
             ordens={emDesenvolvimento}
+            pagina={paginas.em_desenvolvimento}
+            onPaginaChange={mudarPaginaEmDesenvolvimento}
             onViewDetails={onViewDetails}
             onChangeStatus={updateStatus}
             onFaturar={handleFaturar}
@@ -354,6 +372,8 @@ export const OSBoard = ({ onViewDetails, onNewOS }: OSBoardProps) => {
             id="finalizada"
             title="Finalizadas"
             ordens={finalizadas}
+            pagina={paginas.finalizada}
+            onPaginaChange={mudarPaginaFinalizada}
             onViewDetails={onViewDetails}
             onChangeStatus={updateStatus}
             onFaturar={handleFaturar}
