@@ -172,3 +172,37 @@ export interface PainelMaterial {
     cabelo_proprio: { os: number; gramas: number; custo: number; perda_media: number | null; os_pesadas: number; prejuizo_estimado: number };
   };
 }
+
+export type FormaPagamento = 'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito';
+
+export interface FotografiaPagamento {
+  status: string;
+  faturada: boolean;
+  data_faturamento: string | null;
+  valor: string | null;
+  forma_pagamento: FormaPagamento | null;
+  forma_pagamento_2: FormaPagamento | null;
+  valor_pagamento_1: string | null;
+  valor_pagamento_2: string | null;
+  valor_recebido: string | null;
+}
+
+export interface AlteracaoOS {
+  id: number;
+  acao: 'corrigir_pagamento' | 'estornar_faturamento' | 'cancelar_faturada';
+  acao_label: string;
+  motivo: string;
+  dados_antes: FotografiaPagamento;
+  dados_depois: FotografiaPagamento;
+  usuario_nome: string | null;
+  data: string;
+}
+
+export interface CorrecaoPagamento {
+  pin?: string;
+  motivo: string;
+  forma_pagamento: FormaPagamento | '';
+  forma_pagamento_2?: FormaPagamento | null;
+  valor_pagamento_1?: number | null;
+  valor_recebido?: number | null;
+}

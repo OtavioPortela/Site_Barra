@@ -216,36 +216,12 @@ class FaturarOSTest(TestCase):
         response = self.client.post(f'/api/ordens-servico/{self.os.id}/faturar/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_desfaturar_os_sem_permissao(self):
-        # Faturar é operação de balcão (o funcionário fecha a nota e fatura),
-        # mas desfaturar é privilégio do patrão.
-        self.os.faturada = True
-        self.os.data_faturamento = timezone.now()
-        self.os.save()
-        criar_usuario(email='func@barra.com', is_staff=False)
-        self.client.credentials()
-        autenticar(self.client, email='func@barra.com')
-        response = self.client.post(f'/api/ordens-servico/{self.os.id}/desfaturar/')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_desfaturar_os(self):
-        self.os.faturada = True
-        self.os.data_faturamento = timezone.now()
-        self.os.save()
-
-        response = self.client.post(f'/api/ordens-servico/{self.os.id}/desfaturar/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.os.refresh_from_db()
-        self.assertFalse(self.os.faturada)
-        self.assertIsNone(self.os.data_faturamento)
-
     def test_faturar_os_ja_faturada(self):
         self.os.faturada = True
         self.os.data_faturamento = timezone.now()
         self.os.save()
 
-        # A OS faturada ainda pode ser acessada pelo endpoint faturar (via get_queryset excluindo faturadas = 404)
-        # mas o desfaturar usa get_object_or_404 diretamente
+        # A OS faturada não é encontrada pelo endpoint faturar (get_queryset exclui faturadas = 404)
         response = self.client.post(f'/api/ordens-servico/{self.os.id}/faturar/')
         # Queryset exclui faturadas, então retorna 404
         self.assertIn(response.status_code, [status.HTTP_400_BAD_REQUEST, status.HTTP_404_NOT_FOUND])

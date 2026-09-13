@@ -6,6 +6,7 @@ import type { SaidaCaixa, OrdemServico } from '../types';
 import { TipoMaterialSelector } from '../components/common/TipoMaterialSelector';
 import { TIPOS_MATERIAL } from '../utils/material';
 import { dataLocalIso } from '../utils/helpers';
+import { CorrecaoFaturamentoModal } from '../components/faturamento/CorrecaoFaturamentoModal';
 
 const CATEGORIAS = [
   { value: 'outro', label: 'Outro' },
@@ -48,6 +49,7 @@ export const Caixa = () => {
   const podeVerFaturamento = isPatrao();
   const [lancamentos, setLancamentos] = useState<SaidaCaixa[]>([]);
   const [osFaturadas, setOsFaturadas] = useState<OrdemServico[]>([]);
+  const [correcao, setCorrecao] = useState<OrdemServico | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -376,6 +378,7 @@ export const Caixa = () => {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pagamento</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Troco</th>
+                      {podeVerFaturamento && <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Correção</th>}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -410,6 +413,13 @@ export const Caixa = () => {
                             <span className="text-gray-300">—</span>
                           )}
                         </td>
+                        {podeVerFaturamento && (
+                          <td className="px-4 py-3 text-right text-sm">
+                            <button onClick={() => setCorrecao(os)} className="font-semibold text-areia-escuro hover:text-tinta">
+                              Corrigir
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -491,6 +501,15 @@ export const Caixa = () => {
           </div>
         </>
       )}
+      <CorrecaoFaturamentoModal
+        ordem={correcao}
+        onClose={() => setCorrecao(null)}
+        onConcluido={(modo) => {
+          toast.success(modo === 'corrigir' ? 'Pagamento corrigido.' : modo === 'estornar' ? 'Faturamento estornado. A OS voltou para Finalizadas.' : 'OS cancelada.');
+          setCorrecao(null);
+          loadData();
+        }}
+      />
     </div>
   );
 };

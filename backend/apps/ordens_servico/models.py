@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.utils import timezone
@@ -228,6 +229,39 @@ class OrdemServico(models.Model):
     def cliente_nome(self):
         """Retorna o nome do cliente para serialização."""
         return self.cliente.nome
+
+class AlteracaoOS(models.Model):
+    """
+    Registro permanente de cada correção feita numa OS depois de faturada:
+    quem fez, quando, o que era antes, o que ficou depois e por quê.
+    """
+    ACAO_CHOICES = [
+        ('corrigir_pagamento', 'Pagamento corrigido'),
+        ('estornar_faturamento', 'Faturamento estornado'),
+        ('cancelar_faturada', 'OS faturada cancelada'),
+    ]
+
+    ordem_servico = models.ForeignKey(OrdemServico, on_delete=models.CASCADE, related_name='alteracoes')
+    acao = models.CharField(max_length=30, choices=ACAO_CHOICES)
+    motivo = models.TextField()
+    dados_antes = models.JSONField(default=dict)
+    dados_depois = models.JSONField(default=dict)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='alteracoes_os',
+    )
+    data = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-data', '-id']
+        verbose_name = 'Alteração de OS'
+        verbose_name_plural = 'Alterações de OS'
+
+    def __str__(self):
+        return f"{self.ordem_servico.numero} — {self.get_acao_display()} em {self.data:%d/%m/%Y %H:%M}"
+
 
 class Servico(models.Model):
     """Modelo para armazenar serviços"""

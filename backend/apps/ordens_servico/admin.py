@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Cliente, OrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
+from .models import AlteracaoOS, Cliente, OrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
 
 
 @admin.register(Cliente)
@@ -76,3 +76,20 @@ class CorLinhaAdmin(admin.ModelAdmin):
     search_fields = ['nome']
     ordering = ['ordem', 'nome']
 
+
+
+@admin.register(AlteracaoOS)
+class AlteracaoOSAdmin(admin.ModelAdmin):
+    """Somente leitura: o histórico de correções não pode ser editado nem apagado."""
+    list_display = ['ordem_servico', 'acao', 'usuario', 'data']
+    list_filter = ['acao', 'data']
+    search_fields = ['ordem_servico__numero', 'motivo']
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

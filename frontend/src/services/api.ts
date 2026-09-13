@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { LoginCredentials, OrdemServico, BillingData, Debito, Cliente, SaidaCaixa, PainelMaterial } from '../types';
+import type { LoginCredentials, OrdemServico, BillingData, Debito, Cliente, SaidaCaixa, PainelMaterial, AlteracaoOS, CorrecaoPagamento } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -175,8 +175,24 @@ export const ordemServicoService = {
     return response.data;
   },
 
-  desfaturar: async (id: number): Promise<OrdemServico> => {
-    const response = await api.post(`/ordens-servico/${id}/desfaturar/`);
+  // Correções de OS faturada (só patrão, com PIN e motivo; ficam no histórico da OS)
+  corrigirPagamento: async (id: number, dados: CorrecaoPagamento): Promise<{ ordem: OrdemServico; alteracao: AlteracaoOS }> => {
+    const response = await api.post(`/ordens-servico/${id}/corrigir-pagamento/`, dados);
+    return response.data;
+  },
+
+  estornarFaturamento: async (id: number, dados: { pin?: string; motivo: string }): Promise<{ ordem: OrdemServico; alteracao: AlteracaoOS }> => {
+    const response = await api.post(`/ordens-servico/${id}/estornar-faturamento/`, dados);
+    return response.data;
+  },
+
+  cancelarFaturada: async (id: number, dados: { pin?: string; motivo: string }): Promise<{ ordem: OrdemServico; alteracao: AlteracaoOS }> => {
+    const response = await api.post(`/ordens-servico/${id}/cancelar-faturada/`, dados);
+    return response.data;
+  },
+
+  getAlteracoes: async (id: number): Promise<AlteracaoOS[]> => {
+    const response = await api.get(`/ordens-servico/${id}/alteracoes/`);
     return response.data;
   },
 

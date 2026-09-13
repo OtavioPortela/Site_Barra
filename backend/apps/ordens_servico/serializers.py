@@ -3,7 +3,7 @@ from rest_framework import serializers
 from django.utils import timezone
 from datetime import date
 from django.conf import settings
-from .models import Cliente, OrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
+from .models import AlteracaoOS, Cliente, OrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
 
 
 class DateTimeFieldISO(serializers.DateTimeField):
@@ -282,6 +282,7 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
             'servico', 'valor', 'data_criacao', 'prazo_entrega', 'data_finalizacao', 'faturada', 'entregue', 'pago_na_entrega', 'foto_entrega',
             'forma_pagamento', 'forma_pagamento_2', 'valor_pagamento_1', 'valor_pagamento_2',
             'peso_gramas', 'tamanho_cabelo_cm', 'limpeza_mesclagem', 'peso_final_gramas', 'exige_peso_final',
+            'valor_recebido', 'observacoes',
         ]
 
 
@@ -354,3 +355,18 @@ class CorLinhaSerializer(serializers.ModelSerializer):
         model = CorLinha
         fields = ['id', 'nome', 'ativo', 'ordem', 'data_criacao']
         read_only_fields = ['id', 'data_criacao']
+
+
+class AlteracaoOSSerializer(serializers.ModelSerializer):
+    acao_label = serializers.CharField(source='get_acao_display', read_only=True)
+    usuario_nome = serializers.SerializerMethodField()
+    data = DateTimeFieldISO(read_only=True)
+
+    class Meta:
+        model = AlteracaoOS
+        fields = ['id', 'acao', 'acao_label', 'motivo', 'dados_antes', 'dados_depois', 'usuario_nome', 'data']
+
+    def get_usuario_nome(self, obj):
+        if not obj.usuario:
+            return None
+        return obj.usuario.nome_completo or obj.usuario.email

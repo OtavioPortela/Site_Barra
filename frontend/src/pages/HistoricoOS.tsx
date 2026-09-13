@@ -4,6 +4,8 @@ import { ordemServicoService } from '../services/api';
 import type { OrdemServico } from '../types';
 import { formatCurrency, formatDate, dataLocalIso } from '../utils/helpers';
 import { useAuth } from '../contexts/AuthContext';
+import { CorrecaoFaturamentoModal, type ModoCorrecao } from '../components/faturamento/CorrecaoFaturamentoModal';
+import { HistoricoAlteracoes } from '../components/faturamento/HistoricoAlteracoes';
 
 export const HistoricoOS = () => {
   const { isPatrao } = useAuth();
@@ -12,6 +14,7 @@ export const HistoricoOS = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [modalDetalhe, setModalDetalhe] = useState<OrdemServico | null>(null);
+  const [correcao, setCorrecao] = useState<{ ordem: OrdemServico; modo: ModoCorrecao } | null>(null);
   const itemsPerPage = 10;
   const [filters, setFilters] = useState({
     status: '',
@@ -242,6 +245,26 @@ export const HistoricoOS = () => {
                 </p>
               </div>
 
+              {/* Correções de OS faturada (só patrão) */}
+              {isPatrao() && modalDetalhe.faturada && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Correções</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => setCorrecao({ ordem: modalDetalhe, modo: 'corrigir' })} className="rounded-lg bg-tinta px-3 py-1.5 text-sm font-semibold text-papel hover:bg-black">
+                      Corrigir pagamento
+                    </button>
+                    <button onClick={() => setCorrecao({ ordem: modalDetalhe, modo: 'estornar' })} className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                      Estornar faturamento
+                    </button>
+                    <button onClick={() => setCorrecao({ ordem: modalDetalhe, modo: 'cancelar' })} className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50">
+                      Cancelar OS
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {isPatrao() && <HistoricoAlteracoes ordemId={modalDetalhe.id} />}
+
               {/* Observações */}
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Observações</p>
@@ -260,6 +283,18 @@ export const HistoricoOS = () => {
           </div>
         </div>
       )}
+
+      <CorrecaoFaturamentoModal
+        ordem={correcao?.ordem ?? null}
+        modoInicial={correcao?.modo}
+        onClose={() => setCorrecao(null)}
+        onConcluido={(modo) => {
+          toast.success(modo === 'corrigir' ? 'Pagamento corrigido.' : modo === 'estornar' ? 'Faturamento estornado. A OS voltou para Finalizadas.' : 'OS cancelada.');
+          setCorrecao(null);
+          setModalDetalhe(null);
+          loadOrdens();
+        }}
+      />
 
       <div className="mb-4 sm:mb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">

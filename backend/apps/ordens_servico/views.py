@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from .models import Cliente, OrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
-from . import notas_debito
+from . import correcoes, notas_debito
 from .permissions import IsStaffOnly
 from .serializers import (
     ClienteSerializer,
@@ -27,6 +27,7 @@ from .serializers import (
     CorCabeloSerializer,
     CorLinhaSerializer,
     validar_medidas_finais,
+    AlteracaoOSSerializer,
 )
 from .permissions import IsOwnerOrReadOnly, CanFinalizeOS, IsStaffOrReadOnly
 
@@ -160,7 +161,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
     # Numa OS faturada só as medidas do controle de perdas continuam editáveis:
     # não mexem em dinheiro e o painel Material permite informar o peso depois.
     CAMPOS_EDITAVEIS_FATURADA = {'peso_final_gramas', 'tamanho_final_cm'}
-    MENSAGEM_OS_FATURADA = 'Esta OS já foi faturada e não pode mais ser alterada.'
+    MENSAGEM_OS_FATURADA = 'Esta OS já foi faturada e não pode mais ser alterada. Para ajustar, use Corrigir pagamento ou Estornar faturamento no Histórico.'
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -183,7 +184,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             return Response({'error': 'OS não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
         if instance.faturada:
             return Response(
-                {'error': 'Esta OS já foi faturada e não pode ser cancelada.'},
+                {'error': 'Esta OS já foi faturada e não pode ser cancelada por aqui. Use Cancelar OS nas correções do Histórico.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         instance.status = 'cancelada'
@@ -287,36 +288,45 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK
         )
 
-    @action(detail=True, methods=['post'], url_path='desfaturar', permission_classes=[IsAuthenticated])
-    def desfaturar(self, request, pk=None):
-        """Endpoint para desfaturar uma OS (devolver ao dashboard) - apenas patrão."""
-        # Busca direta ignorando o filtro de faturada=False do get_queryset
+    # ---------- Correções de OS faturada (só patrão, com PIN e motivo) ----------
+
+    def _ordem_faturavel(self, pk):
+        # Busca direta: o get_queryset esconde faturadas quando não é o Histórico
         from django.shortcuts import get_object_or_404
-        ordem_servico = get_object_or_404(OrdemServico, pk=pk)
+        return get_object_or_404(OrdemServico.objects.select_related('cliente'), pk=pk)
 
-        # Verificar se é patrão
+    def _executar_correcao(self, request, pk, funcao):
         if not request.user.is_staff:
-            return Response(
-                {'error': 'Apenas o patrão pode desfaturar uma ordem de serviço.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({'error': 'Apenas o patrão pode corrigir uma OS faturada.'}, status=status.HTTP_403_FORBIDDEN)
+        ordem = self._ordem_faturavel(pk)
+        try:
+            alteracao = funcao(ordem, request.data, request.user)
+        except correcoes.ErroCorrecao as erro:
+            corpo = {'error': erro.mensagem}
+            if erro.campo:
+                corpo['campo'] = erro.campo
+            return Response(corpo, status=erro.status)
+        return Response({
+            'ordem': OrdemServicoSerializer(ordem, context={'request': request}).data,
+            'alteracao': AlteracaoOSSerializer(alteracao).data,
+        })
 
-        # Verificar se está faturada
-        if not ordem_servico.faturada:
-            return Response(
-                {'error': 'Esta ordem de serviço não está faturada.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+    @action(detail=True, methods=['post'], url_path='corrigir-pagamento', permission_classes=[IsAuthenticated])
+    def corrigir_pagamento(self, request, pk=None):
+        return self._executar_correcao(request, pk, correcoes.corrigir_pagamento)
 
-        # Desfaturar a OS (devolver ao dashboard)
-        ordem_servico.faturada = False
-        ordem_servico.data_faturamento = None
-        ordem_servico.save()
+    @action(detail=True, methods=['post'], url_path='estornar-faturamento', permission_classes=[IsAuthenticated])
+    def estornar_faturamento(self, request, pk=None):
+        return self._executar_correcao(request, pk, correcoes.estornar_faturamento)
 
-        return Response(
-            OrdemServicoSerializer(ordem_servico).data,
-            status=status.HTTP_200_OK
-        )
+    @action(detail=True, methods=['post'], url_path='cancelar-faturada', permission_classes=[IsAuthenticated])
+    def cancelar_faturada(self, request, pk=None):
+        return self._executar_correcao(request, pk, correcoes.cancelar_faturada)
+
+    @action(detail=True, methods=['get'], url_path='alteracoes', permission_classes=[IsAuthenticated, IsStaffOnly])
+    def alteracoes(self, request, pk=None):
+        ordem = self._ordem_faturavel(pk)
+        return Response(AlteracaoOSSerializer(ordem.alteracoes.select_related('usuario'), many=True).data)
 
     @action(detail=False, methods=['get'], url_path='exportar-excel', permission_classes=[IsAuthenticated, IsStaffOnly])
     def exportar_excel(self, request):
