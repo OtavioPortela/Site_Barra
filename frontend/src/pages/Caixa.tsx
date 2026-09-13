@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import type { SaidaCaixa, OrdemServico } from '../types';
 import { TipoMaterialSelector } from '../components/common/TipoMaterialSelector';
 import { TIPOS_MATERIAL } from '../utils/material';
+import { dataLocalIso } from '../utils/helpers';
 
 const CATEGORIAS = [
   { value: 'outro', label: 'Outro' },
@@ -29,11 +30,11 @@ const emptyForm = {
   valor: '',
   categoria: 'outro',
   tipo_material: '',
-  data: new Date().toISOString().split('T')[0],
+  data: dataLocalIso(),
   observacoes: '',
 };
 
-const today = () => new Date().toISOString().split('T')[0];
+const today = () => dataLocalIso();
 
 const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

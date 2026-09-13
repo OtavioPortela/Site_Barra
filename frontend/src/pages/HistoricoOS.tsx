@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { ordemServicoService } from '../services/api';
 import type { OrdemServico } from '../types';
-import { formatCurrency, formatDate } from '../utils/helpers';
+import { formatCurrency, formatDate, dataLocalIso } from '../utils/helpers';
 import { useAuth } from '../contexts/AuthContext';
 
 export const HistoricoOS = () => {
@@ -101,7 +101,7 @@ export const HistoricoOS = () => {
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = downloadUrl;
-      link.download = `ordens_servico_${new Date().toISOString().split('T')[0]}.xlsx`;
+      link.download = `ordens_servico_${dataLocalIso()}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -121,7 +121,7 @@ export const HistoricoOS = () => {
       toast.success(`OS #${ordem.numero} cancelada`);
       setOrdens(prev => prev.filter(o => o.id !== ordem.id));
     } catch (error: any) {
-      toast.error('Erro ao cancelar ordem de serviço');
+      toast.error(error?.response?.data?.error || 'Erro ao cancelar ordem de serviço');
     }
   };
 
@@ -425,7 +425,7 @@ export const HistoricoOS = () => {
                     </svg>
                     Detalhes
                   </button>
-                  {isPatrao() && aba === 'historico' && (
+                  {isPatrao() && aba === 'historico' && !ordem.faturada && (
                     <button
                       onClick={() => handleDelete(ordem)}
                       className="flex-1 py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
@@ -579,12 +579,16 @@ export const HistoricoOS = () => {
                   </td>
                   {isPatrao() && aba === 'historico' && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button
-                        onClick={() => handleDelete(ordem)}
-                        className="text-red-600 hover:text-red-800 font-medium transition-colors"
-                      >
-                        Cancelar
-                      </button>
+                      {ordem.faturada ? (
+                        <span className="text-gray-400" title="OS faturada não pode ser cancelada">—</span>
+                      ) : (
+                        <button
+                          onClick={() => handleDelete(ordem)}
+                          className="text-red-600 hover:text-red-800 font-medium transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      )}
                     </td>
                   )}
                 </tr>

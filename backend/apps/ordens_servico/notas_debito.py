@@ -22,11 +22,11 @@ def formatar_moeda(valor):
 
 
 def buscar_debitos(parceiro):
-    """OS do parceiro que ainda não foram pagas, da mais antiga para a mais nova."""
+    """OS do parceiro (não canceladas) que ainda não foram pagas, da mais antiga para a mais nova."""
     return OrdemServico.objects.filter(
         cliente=parceiro,
         forma_pagamento__isnull=True,
-    ).select_related('servico').order_by('data_criacao')
+    ).exclude(status='cancelada').select_related('servico').order_by('data_criacao')
 
 
 def nome_arquivo(parceiro, extensao='pdf'):

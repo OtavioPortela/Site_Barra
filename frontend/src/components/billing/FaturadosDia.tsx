@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { faturadosDiaService } from '../../services/api';
 import type { FaturadosDia as FaturadosDiaData, FaturadosDiaItem } from '../../services/api';
+import { dataLocalIso } from '../../utils/helpers';
 
 const FORMA_CORES: Record<string, { bg: string; text: string }> = {
   dinheiro:       { bg: 'bg-green-100',  text: 'text-green-700' },
@@ -34,7 +35,7 @@ const FormaTag = ({ forma, label }: { forma: string | null; label?: string }) =>
 };
 
 export const FaturadosDia = () => {
-  const hoje = new Date().toISOString().split('T')[0];
+  const hoje = dataLocalIso();
   const [data, setData] = useState(hoje);
   const [resultado, setResultado] = useState<FaturadosDiaData | null>(null);
   const [loading, setLoading] = useState(false);

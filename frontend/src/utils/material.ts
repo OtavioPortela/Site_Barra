@@ -1,3 +1,5 @@
+import { dataLocalIso } from './helpers';
+
 // Regras do controle de perdas, iguais às do backend (apps/faturamento/material.py).
 export const PERDA_ESPERADA = 20;
 export const PERDA_ESPERADA_LIMPEZA = 40;
@@ -39,8 +41,7 @@ export const formatarPeso = (gramas: number) =>
 
 export type PresetPeriodo = 'mes' | 'mes_passado' | '90_dias';
 
-const dataIso = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dataIso = dataLocalIso;
 
 /** Datas locais (sem passar por UTC, que muda o dia à noite no Brasil). */
 export const periodoDoPreset = (preset: PresetPeriodo, hoje = new Date()) => {

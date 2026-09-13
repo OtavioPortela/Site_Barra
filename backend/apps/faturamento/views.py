@@ -78,7 +78,7 @@ def dashboard_view(request):
     ticket_medio = os_finalizadas.aggregate(Avg('valor'))['valor__avg'] or 0
 
     # Faturamento por período (últimos 12 meses) — query única com TruncMonth
-    hoje = timezone.now().date()
+    hoje = timezone.localdate()
     mes_atual = hoje.replace(day=1)
     ano_inicio = mes_atual.year
     mes_inicio = mes_atual.month - 11
@@ -148,7 +148,7 @@ def dashboard_view(request):
         saidas_qs = saidas_qs.filter(data__lte=data_fim)
     total_saidas = saidas_qs.aggregate(Sum('valor'))['valor__sum'] or 0
 
-    saidas_mensal = SaidaCaixa.objects.filter(tipo='saida', data__gte=timezone.now().date() - timedelta(days=30))
+    saidas_mensal = SaidaCaixa.objects.filter(tipo='saida', data__gte=timezone.localdate() - timedelta(days=30))
     total_saidas_mensal = saidas_mensal.aggregate(Sum('valor'))['valor__sum'] or 0
 
     return Response({
@@ -263,7 +263,7 @@ def faturados_no_dia_view(request):
     data_str = request.query_params.get('data')
 
     if not data_str:
-        data_ref = timezone.now().date()
+        data_ref = timezone.localdate()
     else:
         try:
             data_ref = datetime.strptime(data_str, '%Y-%m-%d').date()
@@ -273,6 +273,7 @@ def faturados_no_dia_view(request):
     ordens = (
         OrdemServico.objects
         .filter(faturada=True, data_faturamento__date=data_ref)
+        .exclude(status='cancelada')
         .select_related('cliente', 'servico')
         .order_by('data_faturamento')
     )

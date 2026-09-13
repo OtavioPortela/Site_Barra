@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { debitoService, clienteService } from '../services/api';
 import { whatsappService } from '../services/whatsappService';
 import { useAuth } from '../contexts/AuthContext';
-import { formatCurrency, formatDate } from '../utils/helpers';
+import { formatCurrency, formatDate, dataLocalIso } from '../utils/helpers';
 import toast from 'react-hot-toast';
 import type { Debito, Cliente } from '../types';
 
@@ -73,7 +73,7 @@ export const Debitos = () => {
       link.href = url;
 
       const parceiro = clientesParceiros.find(c => c.id === parceiroSelecionado);
-      const nomeArquivo = `nota_debitos_${parceiro?.nome.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const nomeArquivo = `nota_debitos_${parceiro?.nome.replace(/\s+/g, '_')}_${dataLocalIso()}.xlsx`;
       link.download = nomeArquivo;
 
       document.body.appendChild(link);
@@ -170,7 +170,7 @@ export const Debitos = () => {
       link.href = downloadUrl;
 
       const parceiro = clientesParceiros.find(c => c.id === parceiroSelecionado);
-      const nomeArquivo = `exportacao_completa_${parceiro?.nome.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const nomeArquivo = `exportacao_completa_${parceiro?.nome.replace(/\s+/g, '_')}_${dataLocalIso()}.xlsx`;
       link.download = nomeArquivo;
 
       document.body.appendChild(link);

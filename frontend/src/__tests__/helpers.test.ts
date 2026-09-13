@@ -5,6 +5,7 @@ import {
   formatDateTime,
   getStatusLabel,
   getStatusColor,
+  dataLocalIso,
 } from '../utils/helpers';
 
 describe('formatCurrency', () => {
@@ -114,5 +115,16 @@ describe('getStatusColor', () => {
 
   it('retorna classes padrão para status desconhecido (cinza)', () => {
     expect(getStatusColor('outro')).toContain('gray');
+  });
+});
+
+describe('dataLocalIso', () => {
+  it('usa o dia local mesmo quando em UTC já é o dia seguinte', () => {
+    // 12/09/2026 às 23h30 no relógio local
+    expect(dataLocalIso(new Date(2026, 8, 12, 23, 30))).toBe('2026-09-12');
+  });
+
+  it('completa mês e dia com zero', () => {
+    expect(dataLocalIso(new Date(2026, 0, 5, 8, 0))).toBe('2026-01-05');
   });
 });

@@ -59,3 +59,10 @@ export const getStatusColor = (status: string): string => {
   return colors[status] || 'bg-gray-100 text-gray-800 border-gray-300';
 };
 
+
+/**
+ * Data no formato YYYY-MM-DD pelo relógio local (Brasília).
+ * Evita `toISOString()`, que usa UTC e vira o dia seguinte depois das 21h.
+ */
+export const dataLocalIso = (data: Date = new Date()): string =>
+  `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;

@@ -157,6 +157,19 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             numero = f"OS-{novo_num:04d}"
         serializer.save(usuario_criacao=self.request.user, numero=numero)
 
+    # Numa OS faturada só as medidas do controle de perdas continuam editáveis:
+    # não mexem em dinheiro e o painel Material permite informar o peso depois.
+    CAMPOS_EDITAVEIS_FATURADA = {'peso_final_gramas', 'tamanho_final_cm'}
+    MENSAGEM_OS_FATURADA = 'Esta OS já foi faturada e não pode mais ser alterada.'
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.faturada:
+            campos = set(request.data.keys()) - {'csrfmiddlewaretoken'}
+            if not campos <= self.CAMPOS_EDITAVEIS_FATURADA:
+                return Response({'error': self.MENSAGEM_OS_FATURADA}, status=status.HTTP_400_BAD_REQUEST)
+        return super().update(request, *args, **kwargs)
+
     def destroy(self, request, *args, **kwargs):
         """Soft delete — marca OS como cancelada. Restrito a administradores."""
         if not request.user.is_staff:
@@ -168,6 +181,11 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             instance = OrdemServico.objects.get(pk=kwargs['pk'])
         except OrdemServico.DoesNotExist:
             return Response({'error': 'OS não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        if instance.faturada:
+            return Response(
+                {'error': 'Esta OS já foi faturada e não pode ser cancelada.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         instance.status = 'cancelada'
         instance.save(update_fields=['status'])
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -192,6 +210,9 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
     def update_status(self, request, pk=None):
         """Endpoint para atualizar apenas o status da OS."""
         ordem_servico = self.get_object()
+
+        if ordem_servico.faturada:
+            return Response({'error': self.MENSAGEM_OS_FATURADA}, status=status.HTTP_400_BAD_REQUEST)
 
         # Removida a restrição de finalização - agora funcionários podem finalizar
         # Apenas o patrão pode faturar (via endpoint separado)
@@ -313,7 +334,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(cliente_id=cliente_id)
 
         if apenas_debitos and apenas_debitos.lower() == 'true':
-            queryset = queryset.filter(forma_pagamento__isnull=True)
+            queryset = queryset.filter(forma_pagamento__isnull=True).exclude(status='cancelada')
 
         if status_filter:
             queryset = queryset.filter(status=status_filter)
@@ -498,10 +519,11 @@ class DebitoViewSet(viewsets.ReadOnlyModelViewSet):
             ).select_related('cliente', 'servico')
 
         # Listagem: apenas OS sem pagamento (débitos pendentes)
+        # OS canceladas não são dívida do parceiro
         queryset = OrdemServico.objects.filter(
             cliente__eh_parceiro=True,
             forma_pagamento__isnull=True
-        ).select_related('cliente', 'servico')
+        ).exclude(status='cancelada').select_related('cliente', 'servico')
 
         parceiro_id = self.request.query_params.get('parceiro_id')
         if parceiro_id:
