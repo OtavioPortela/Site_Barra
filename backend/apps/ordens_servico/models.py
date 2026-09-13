@@ -112,6 +112,26 @@ class OrdemServico(models.Model):
         verbose_name='Valor por Metro (R$)',
         help_text='Valor em reais por metro'
     )
+    # Agenda: quem está com a OS e quando começou/terminou
+    responsavel = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='os_responsavel',
+        verbose_name='Responsável',
+        help_text='Funcionário que assumiu a OS ao movê-la para Em Desenvolvimento',
+    )
+    inicio_trabalho = models.DateTimeField(null=True, blank=True, verbose_name='Início do trabalho')
+    finalizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='os_finalizadas_por',
+        verbose_name='Finalizado por',
+    )
+
     # Controle de material/perdas (painel Material)
     ORIGEM_CABELO_CHOICES = [
         ('cliente', 'Da cliente'),

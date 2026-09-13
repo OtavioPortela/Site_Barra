@@ -206,3 +206,48 @@ export interface CorrecaoPagamento {
   valor_pagamento_1?: number | null;
   valor_recebido?: number | null;
 }
+
+export interface PessoaAgenda {
+  id: number;
+  nome: string;
+  iniciais: string;
+}
+
+export interface ProfissionalAgenda extends PessoaAgenda {
+  is_staff: boolean;
+  em_andamento: number;
+  atrasadas: number;
+}
+
+export interface ItemAgenda {
+  id: number;
+  numero: string;
+  cliente: string;
+  servico: string;
+  descricao: string;
+  status: 'pendente' | 'em_desenvolvimento' | 'finalizada';
+  faturada: boolean;
+  atrasada: boolean;
+  prazo: string;
+  responsavel: PessoaAgenda | null;
+  finalizado_por: PessoaAgenda | null;
+  criado_por: PessoaAgenda | null;
+  data_criacao: string;
+  inicio: string | null;
+  fim: string | null;
+  sem_horario_inicio?: boolean;
+  peso_gramas: number;
+  tamanho_cabelo_cm: number;
+  exige_peso_final: boolean;
+  limpeza_mesclagem: boolean;
+  pode_mover: boolean;
+  valor?: number;
+}
+
+export interface RespostaAgenda {
+  periodo: { inicio: string; fim: string };
+  agora: string;
+  profissionais: ProfissionalAgenda[];
+  a_fazer: ItemAgenda[];
+  blocos: ItemAgenda[];
+}

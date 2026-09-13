@@ -2,6 +2,7 @@
 URL configuration for barra_confeccoes project.
 """
 from django.contrib import admin
+from apps.ordens_servico.agenda import agenda_view
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
@@ -37,6 +38,7 @@ urlpatterns = [
     path('api/whatsapp/', include('apps.whatsapp.urls')),
     path('api/configuracoes/', include('apps.ordens_servico.urls_configuracoes')),
     path('api/debitos/', include('apps.ordens_servico.urls_debitos')),
+    path('api/agenda/', agenda_view, name='agenda'),
 
     # Swagger Documentation
     path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

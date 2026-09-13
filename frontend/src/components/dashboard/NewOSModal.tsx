@@ -12,9 +12,11 @@ interface NewOSModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  /** Prazo já preenchido (formato datetime-local), usado ao criar pela Agenda */
+  prazoInicial?: string;
 }
 
-export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
+export const NewOSModal = ({ isOpen, onClose, onSuccess, prazoInicial }: NewOSModalProps) => {
   const [formData, setFormData] = useState({
     cliente: '',
     descricao: '',
@@ -61,6 +63,12 @@ export const NewOSModal = ({ isOpen, onClose, onSuccess }: NewOSModalProps) => {
   const [filteredServicos, setFilteredServicos] = useState<Array<{ id: number; nome: string }>>([]);
   const servicoInputRef = useRef<HTMLInputElement>(null);
   const servicoDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && prazoInicial) {
+      setFormData((atual) => ({ ...atual, prazo_entrega: prazoInicial }));
+    }
+  }, [isOpen, prazoInicial]);
 
   useEffect(() => {
     if (isOpen) {

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from .models import Cliente, OrdemServico, Servico, EstadoCabelo, TipoCabelo, CorCabelo, CorLinha
-from . import correcoes, notas_debito
+from . import agenda, correcoes, notas_debito
 from .permissions import IsStaffOnly
 from .serializers import (
     ClienteSerializer,
@@ -74,7 +74,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         """Filtra queryset baseado em parâmetros de data."""
         # Os serializers leem cliente, serviço e usuário de cada OS; sem o JOIN
         # a listagem do histórico fazia uma query por OS e passava de 20s.
-        queryset = super().get_queryset().select_related('cliente', 'servico', 'usuario_criacao')
+        queryset = super().get_queryset().select_related('cliente', 'servico', 'usuario_criacao', 'responsavel', 'finalizado_por')
 
         # Faturamento é informação restrita ao patrão: quem não é staff nunca
         # recebe OS faturadas, independente dos filtros que mandar na query.
@@ -163,6 +163,12 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
     CAMPOS_EDITAVEIS_FATURADA = {'peso_final_gramas', 'tamanho_final_cm'}
     MENSAGEM_OS_FATURADA = 'Esta OS já foi faturada e não pode mais ser alterada. Para ajustar, use Corrigir pagamento ou Estornar faturamento no Histórico.'
 
+    def perform_update(self, serializer):
+        anterior = serializer.instance.status
+        novo = serializer.validated_data.get('status', anterior)
+        agenda.aplicar_transicao(serializer.instance, anterior, novo, self.request.user)
+        serializer.save()
+
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         if instance.faturada:
@@ -222,6 +228,8 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         novo_status = request.data.get('status')
+        if novo_status in ('pendente', 'em_desenvolvimento', 'finalizada'):
+            agenda.aplicar_transicao(ordem_servico, ordem_servico.status, novo_status, request.user)
         if novo_status == 'finalizada' and ordem_servico.status != 'finalizada':
             peso_final = request.data.get('peso_final_gramas')
             tamanho_final = request.data.get('tamanho_final_cm')
@@ -287,6 +295,44 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             OrdemServicoSerializer(ordem_servico).data,
             status=status.HTTP_200_OK
         )
+
+    # ---------- Agenda ----------
+
+    @action(detail=True, methods=['post'], url_path='trocar-responsavel', permission_classes=[IsAuthenticated])
+    def trocar_responsavel(self, request, pk=None):
+        if not request.user.is_staff:
+            return Response({'error': 'Apenas o patrão pode trocar o responsável.'}, status=status.HTTP_403_FORBIDDEN)
+        from django.contrib.auth import get_user_model
+        from django.shortcuts import get_object_or_404
+        ordem = get_object_or_404(OrdemServico, pk=pk)
+        if ordem.status in ('pendente', 'cancelada'):
+            return Response({'error': 'Só OS em andamento ou finalizadas têm responsável.'}, status=status.HTTP_400_BAD_REQUEST)
+        responsavel_id = request.data.get('responsavel_id')
+        if responsavel_id in (None, ''):
+            return Response({'error': 'Escolha o novo responsável.'}, status=status.HTTP_400_BAD_REQUEST)
+        novo = get_user_model().objects.filter(pk=responsavel_id, is_active=True, ativo=True).first()
+        if novo is None:
+            return Response({'error': 'Profissional não encontrado ou inativo.'}, status=status.HTTP_400_BAD_REQUEST)
+        ordem.responsavel = novo
+        ordem.save(update_fields=['responsavel'])
+        return Response({'responsavel': agenda._pessoa(novo)})
+
+    @action(detail=True, methods=['post'], url_path='mudar-prazo', permission_classes=[IsAuthenticated])
+    def mudar_prazo(self, request, pk=None):
+        from django.shortcuts import get_object_or_404
+        from rest_framework.fields import DateTimeField
+        ordem = get_object_or_404(OrdemServico, pk=pk)
+        if not agenda.pode_mover_prazo(ordem, request.user):
+            if ordem.faturada or ordem.status not in ('pendente', 'em_desenvolvimento'):
+                return Response({'error': 'Só OS a fazer ou em andamento podem mudar de prazo.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Só o patrão ou quem criou a OS pode mudar o prazo.'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            prazo = DateTimeField().to_internal_value(request.data.get('prazo_entrega'))
+        except Exception:
+            return Response({'error': 'Prazo inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+        ordem.prazo_entrega = prazo
+        ordem.save(update_fields=['prazo_entrega'])
+        return Response({'prazo': agenda._iso(ordem.prazo_entrega)})
 
     # ---------- Correções de OS faturada (só patrão, com PIN e motivo) ----------
 

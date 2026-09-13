@@ -88,6 +88,9 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
     faturada = serializers.BooleanField(read_only=True)
     troco = serializers.SerializerMethodField()
     perda_percentual = serializers.SerializerMethodField()
+    responsavel_nome = serializers.CharField(source='responsavel.nome_completo', read_only=True, default=None)
+    finalizado_por_nome = serializers.CharField(source='finalizado_por.nome_completo', read_only=True, default=None)
+    inicio_trabalho = DateTimeFieldISO(read_only=True, allow_null=True)
     numero = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     estado_cabelo = serializers.CharField(required=False, allow_blank=True)
     tipo_cabelo = serializers.CharField(required=False, allow_blank=True)
@@ -104,8 +107,9 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
             'valor_recebido', 'troco',
             'origem_cabelo', 'custo_cabelo', 'limpeza_mesclagem',
             'peso_final_gramas', 'tamanho_final_cm', 'exige_peso_final', 'perda_percentual',
+            'responsavel', 'responsavel_nome', 'inicio_trabalho', 'finalizado_por', 'finalizado_por_nome',
         ]
-        read_only_fields = ['id', 'data_criacao', 'data_finalizacao', 'faturada', 'data_faturamento', 'usuario_criacao', 'troco', 'exige_peso_final', 'perda_percentual']
+        read_only_fields = ['id', 'data_criacao', 'data_finalizacao', 'faturada', 'data_faturamento', 'usuario_criacao', 'troco', 'exige_peso_final', 'perda_percentual', 'responsavel', 'inicio_trabalho', 'finalizado_por']
 
 
     def get_perda_percentual(self, obj):

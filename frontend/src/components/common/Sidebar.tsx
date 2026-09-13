@@ -29,6 +29,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
   const allNavItems: { path: string; label: string; icon: IconName; requiresStaff: boolean }[] = [
     { path: '/dashboard',    label: 'Dashboard',     icon: 'dashboard',     requiresStaff: false },
+    { path: '/agenda',       label: 'Agenda',        icon: 'agenda',        requiresStaff: false },
     { path: '/faturamento',  label: 'Faturamento',   icon: 'faturamento',   requiresStaff: true  },
     { path: '/material',     label: 'Material',      icon: 'balanca',       requiresStaff: true  },
     { path: '/historico-os', label: 'Histórico OS',  icon: 'historico',     requiresStaff: false },

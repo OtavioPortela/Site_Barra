@@ -17,6 +17,7 @@ import { Configuracoes } from './pages/Configuracoes';
 import { Debitos } from './pages/Debitos';
 import { Caixa } from './pages/Caixa';
 import { Material } from './pages/Material';
+import { Agenda } from './pages/Agenda';
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -69,6 +70,16 @@ function AppRoutes() {
               <PinGate>
                 <Billing />
               </PinGate>
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/agenda"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <Agenda />
             </AppLayout>
           </ProtectedRoute>
         }

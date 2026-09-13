@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { LoginCredentials, OrdemServico, BillingData, Debito, Cliente, SaidaCaixa, PainelMaterial, AlteracaoOS, CorrecaoPagamento } from '../types';
+import type { LoginCredentials, OrdemServico, BillingData, Debito, Cliente, SaidaCaixa, PainelMaterial, AlteracaoOS, CorrecaoPagamento, RespostaAgenda } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -191,6 +191,16 @@ export const ordemServicoService = {
     return response.data;
   },
 
+  trocarResponsavel: async (id: number, responsavelId: number) => {
+    const response = await api.post(`/ordens-servico/${id}/trocar-responsavel/`, { responsavel_id: responsavelId });
+    return response.data;
+  },
+
+  mudarPrazo: async (id: number, prazo: string): Promise<{ prazo: string }> => {
+    const response = await api.post(`/ordens-servico/${id}/mudar-prazo/`, { prazo_entrega: prazo });
+    return response.data;
+  },
+
   getAlteracoes: async (id: number): Promise<AlteracaoOS[]> => {
     const response = await api.get(`/ordens-servico/${id}/alteracoes/`);
     return response.data;
@@ -213,6 +223,13 @@ export const billingService = {
     cliente?: string;
   }): Promise<BillingData> => {
     const response = await api.get('/faturamento/', { params: filters });
+    return response.data;
+  },
+};
+
+export const agendaService = {
+  get: async (params: { inicio: string; fim: string; responsavel?: string }): Promise<RespostaAgenda> => {
+    const response = await api.get('/agenda/', { params });
     return response.data;
   },
 };
