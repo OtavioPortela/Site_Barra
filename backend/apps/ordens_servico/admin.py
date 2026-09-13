@@ -43,6 +43,24 @@ class OrdemServicoAdmin(admin.ModelAdmin):
         }),
     )
 
+    # OS faturada só muda pelas correções do sistema (com PIN, motivo e histórico);
+    # pelo admin ela fica somente leitura e não pode ser apagada.
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None and obj.faturada:
+            return [campo.name for campo in obj._meta.fields]
+        return super().get_readonly_fields(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj is not None and obj.faturada:
+            return False
+        return super().has_delete_permission(request, obj)
+
+    def get_actions(self, request):
+        # A ação em massa "apagar selecionados" ignoraria a regra acima
+        actions = super().get_actions(request)
+        actions.pop('delete_selected', None)
+        return actions
+
 
 
 @admin.register(EstadoCabelo)

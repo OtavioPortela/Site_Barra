@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.contrib.admin.sites import AdminSite
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework import status
@@ -7,6 +8,7 @@ from rest_framework.test import APIClient
 
 from apps.authentication.models import Usuario
 from apps.faturamento.models import ConfiguracaoEmpresa
+from apps.ordens_servico.admin import OrdemServicoAdmin
 from apps.ordens_servico.models import AlteracaoOS, Cliente, OrdemServico, Servico
 
 
@@ -138,6 +140,37 @@ class SegurancaTest(Base):
                 response = self.post(acao, {'pin': '4321', 'motivo': 'Teste', 'forma_pagamento': 'pix'})
                 self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(self.client.get(f'/api/ordens-servico/{self.os.id}/alteracoes/').status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_sem_login_nao_corrige(self):
+        self.client.credentials()
+        for acao in ('corrigir-pagamento', 'estornar-faturamento', 'cancelar-faturada'):
+            with self.subTest(acao=acao):
+                response = self.post(acao, {'pin': '4321', 'motivo': 'Teste', 'forma_pagamento': 'pix'})
+                self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(self.client.get(f'/api/ordens-servico/{self.os.id}/alteracoes/').status_code, status.HTTP_401_UNAUTHORIZED)
+        self.os.refresh_from_db()
+        self.assertEqual((self.os.faturada, self.os.forma_pagamento), (True, 'dinheiro'))
+
+    def test_funcionario_com_pin_certo_continua_bloqueado(self):
+        # Saber o PIN não basta: a correção exige perfil de patrão/admin
+        autenticar(self.client, 'func@barra.com')
+        response = self.post('cancelar-faturada', {'pin': '4321', 'motivo': 'Tentativa'})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.os.refresh_from_db()
+        self.assertEqual(self.os.status, 'finalizada')
+        self.assertFalse(AlteracaoOS.objects.exists())
+
+    def test_admin_do_django_nao_edita_nem_apaga_faturada(self):
+        modelo_admin = OrdemServicoAdmin(OrdemServico, AdminSite())
+        superusuario = Usuario.objects.create_superuser(username='root@b.com', email='root@b.com', password='x', nome_completo='Root')
+        request = type('Req', (), {'user': superusuario})()
+        somente_leitura = modelo_admin.get_readonly_fields(request, self.os)
+        for campo in ('valor', 'status', 'faturada', 'forma_pagamento', 'valor_recebido'):
+            self.assertIn(campo, somente_leitura)
+        self.assertFalse(modelo_admin.has_delete_permission(request, self.os))
+        self.assertNotIn('delete_selected', modelo_admin.get_actions(type('Req', (), {'user': superusuario, 'GET': {}})()))
+        aberta = self.criar_faturada(faturada=False, data_faturamento=None)
+        self.assertNotIn('valor', modelo_admin.get_readonly_fields(request, aberta))
 
     def test_os_nao_faturada(self):
         aberta = self.criar_faturada(faturada=False, data_faturamento=None)
